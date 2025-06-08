@@ -1,0 +1,39 @@
+name: Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current version from package.json
+        id: package_version
+        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+      - name: Get latest published version from GitHub Packages
+        id: npm_version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PUBLISHED_VERSION=$(npm show $(jq -r .name package.json) version || echo "0.0.0")
+          echo "published_version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare versions and publish if updated
+        if: steps.package_version.outputs.version != steps.npm_version.outputs.published_version
+        run: |
+          npm install
+          npm run build
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

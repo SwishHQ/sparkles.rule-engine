@@ -6,10 +6,10 @@
  *   node ./examples/09-rule-results.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/09-rule-results.js
+ *   DEBUG=rule-engine node ./examples/09-rule-results.js
  */
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

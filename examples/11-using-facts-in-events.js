@@ -7,11 +7,11 @@
  *   node ./examples/11-using-facts-in-events.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/11-using-facts-in-events.js
+ *   DEBUG=rule-engine node ./examples/11-using-facts-in-events.js
  */
 
 require('colors')
-const { Engine, Fact } = require('json-rules-engine')
+const { Engine, Fact } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

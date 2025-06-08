@@ -1,9 +1,10 @@
 'use strict'
-
 import Operator from './operator'
 import OperatorDecorator from './operator-decorator'
 import debug from './debug'
-
+/**
+ * OperatorMap manages the collection of operators and decorators available to the engine
+ */
 export default class OperatorMap {
   constructor () {
     this.operators = new Map()
@@ -11,10 +12,10 @@ export default class OperatorMap {
   }
 
   /**
-     * Add a custom operator definition
-     * @param {string}   operatorOrName - operator identifier within the condition; i.e. instead of 'equals', 'greaterThan', etc
-     * @param {function(factValue, jsonValue)} callback - the method to execute when the operator is encountered.
-     */
+   * Add a custom operator definition
+   * @param {string|Operator} operatorOrName - operator identifier within the condition; i.e. instead of 'equals', 'greaterThan', etc
+   * @param {Function} cb - the method to execute when the operator is encountered.
+   */
   addOperator (operatorOrName, cb) {
     let operator
     if (operatorOrName instanceof Operator) {
@@ -27,10 +28,9 @@ export default class OperatorMap {
   }
 
   /**
-     * Remove a custom operator definition
-     * @param {string}   operatorOrName - operator identifier within the condition; i.e. instead of 'equals', 'greaterThan', etc
-     * @param {function(factValue, jsonValue)} callback - the method to execute when the operator is encountered.
-     */
+   * Remove a custom operator definition
+   * @param {string|Operator} operatorOrName - operator identifier within the condition; i.e. instead of 'equals', 'greaterThan', etc
+   */
   removeOperator (operatorOrName) {
     let operatorName
     if (operatorOrName instanceof Operator) {
@@ -38,7 +38,6 @@ export default class OperatorMap {
     } else {
       operatorName = operatorOrName
     }
-
     // Delete all the operators that end in :operatorName these
     // were decorated on-the-fly leveraging this operator
     const suffix = ':' + operatorName
@@ -48,15 +47,14 @@ export default class OperatorMap {
         this.operators.delete(operatorNames[i])
       }
     }
-
     return this.operators.delete(operatorName)
   }
 
   /**
-     * Add a custom operator decorator
-     * @param {string}   decoratorOrName - decorator identifier within the condition; i.e. instead of 'everyFact', 'someValue', etc
-     * @param {function(factValue, jsonValue, next)} callback - the method to execute when the decorator is encountered.
-     */
+   * Add a custom operator decorator
+   * @param {string|OperatorDecorator} decoratorOrName - decorator identifier within the condition; i.e. instead of 'everyFact', 'someValue', etc
+   * @param {Function} cb - the method to execute when the decorator is encountered.
+   */
   addOperatorDecorator (decoratorOrName, cb) {
     let decorator
     if (decoratorOrName instanceof OperatorDecorator) {
@@ -69,9 +67,9 @@ export default class OperatorMap {
   }
 
   /**
-     * Remove a custom operator decorator
-     * @param {string}   decoratorOrName - decorator identifier within the condition; i.e. instead of 'everyFact', 'someValue', etc
-     */
+   * Remove a custom operator decorator
+   * @param {string|OperatorDecorator} decoratorOrName - decorator identifier within the condition; i.e. instead of 'everyFact', 'someValue', etc
+   */
   removeOperatorDecorator (decoratorOrName) {
     let decoratorName
     if (decoratorOrName instanceof OperatorDecorator) {
@@ -79,7 +77,6 @@ export default class OperatorMap {
     } else {
       decoratorName = decoratorOrName
     }
-
     // Delete all the operators that include decoratorName: these
     // were decorated on-the-fly leveraging this decorator
     const prefix = decoratorName + ':'
@@ -89,14 +86,13 @@ export default class OperatorMap {
         this.operators.delete(operatorNames[i])
       }
     }
-
     return this.decorators.delete(decoratorName)
   }
 
   /**
    * Get the Operator, or null applies decorators as needed
    * @param {string} name - the name of the operator including any decorators
-   * @returns an operator or null
+   * @returns {Operator|null} an operator or null
    */
   get (name) {
     const decorators = []
@@ -122,7 +118,6 @@ export default class OperatorMap {
         return null
       }
     }
-
     let op = this.operators.get(opName)
     // apply all the decorators
     for (let i = 0; i < decorators.length; i++) {

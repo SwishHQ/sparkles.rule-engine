@@ -1,6 +1,6 @@
 # Engine
 
-The Engine stores and executes rules, emits events, and maintains state.
+The Engine stores and executes rules, emits events, and maintains state. The engine now supports advanced scoring and weighting capabilities for more nuanced rule evaluation.
 
 * [Methods](#methods)
     * [constructor([Array rules], Object [options])](#constructorarray-rules-object-options)
@@ -20,13 +20,17 @@ The Engine stores and executes rules, emits events, and maintains state.
     * [engine.stop() -&gt; Engine](#enginestop---engine)
       * [engine.on('success', Function(Object event, Almanac almanac, RuleResult ruleResult))](#engineonsuccess-functionobject-event-almanac-almanac-ruleresult-ruleresult)
       * [engine.on('failure', Function(Object event, Almanac almanac, RuleResult ruleResult))](#engineonfailure-functionobject-event-almanac-almanac-ruleresult-ruleresult)
+* [Scoring and Weights](#scoring-and-weights)
+    * [Operator Scoring](#operator-scoring)
+    * [Condition Weights](#condition-weights)
+    * [Rule Scores](#rule-scores)
 
 ## Methods
 
 ### constructor([Array rules], Object [options])
 
 ```js
-let Engine = require('json-rules-engine').Engine
+let Engine = require('@swishhq/rule-engine').Engine
 
 let engine = new Engine()
 
@@ -87,11 +91,23 @@ engine.removeFact('speed-of-light')
 Adds a rule to the engine.  The engine will execute the rule upon the next ```run()```
 
 ```js
-let Rule = require('json-rules-engine').Rule
+let Rule = require('@swishhq/rule-engine').Rule
 
-// via rule properties:
+// via rule properties (now with optional weights):
 engine.addRule({
-  conditions: {},
+  conditions: {
+    all: [{
+      fact: 'score',
+      operator: 'greaterThan',
+      value: 80,
+      weight: 2  // This condition is twice as important
+    }, {
+      fact: 'attendance',
+      operator: 'greaterThan', 
+      value: 0.9,
+      weight: 1  // Standard weight
+    }]
+  },
   event: {},
   priority: 1,                             // optional, default: 1
   onSuccess: function (event, almanac) {}, // optional
@@ -138,22 +154,34 @@ engine.updateRule(rule)
 
 ### engine.addOperator(String operatorName, Function evaluateFunc(factValue, jsonValue))
 
-Adds a custom operator to the engine.  For situations that require going beyond the generic, built-in operators (`equal`, `greaterThan`, etc).
+Adds a custom operator to the engine. Operators now return scores between 0 and 1 instead of boolean values, allowing for more nuanced evaluations.
 
 ```js
 /*
  * operatorName - operator identifier mentioned in the rule condition
- * evaluateFunc(factValue, jsonValue) - compares fact result to the condition 'value', returning boolean
+ * evaluateFunc(factValue, jsonValue) - compares fact result to the condition 'value', returning score (0-1)
  *    factValue - the value returned from the fact
  *    jsonValue - the "value" property stored in the condition itself
+ *    returns: number between 0 and 1, where 1 indicates perfect match
  */
+
+// Boolean-style operator (returns 0 or 1)
 engine.addOperator('startsWithLetter', (factValue, jsonValue) => {
-  if (!factValue.length) return false
-  return factValue[0].toLowerCase() === jsonValue.toLowerCase()
+  if (!factValue.length) return 0
+  return factValue[0].toLowerCase() === jsonValue.toLowerCase() ? 1 : 0
+})
+
+// Scoring operator (returns values between 0 and 1)
+engine.addOperator('similarTo', (factValue, jsonValue) => {
+  if (typeof factValue !== 'string' || typeof jsonValue !== 'string') return 0
+  
+  // Return similarity score based on string comparison
+  const similarity = calculateStringSimilarity(factValue, jsonValue)
+  return Math.max(0, Math.min(1, similarity)) // Ensure 0-1 range
 })
 
 // and to use the operator...
-let rule = new Rule(
+let rule = new Rule({
   conditions: {
     all: [
       {
@@ -163,12 +191,10 @@ let rule = new Rule(
       }
     ]
   }
-)
+})
 ```
 
-See the [operator example](../examples/06-custom-operators.js)
-
-
+See the [operator example](../examples/06-custom-operators.js) and [scoring example](../examples/14-scoring-and-weights.js)
 
 ### engine.removeOperator(String operatorName)
 
@@ -176,8 +202,8 @@ Removes a operator from the engine
 
 ```javascript
 engine.addOperator('startsWithLetter', (factValue, jsonValue) => {
-  if (!factValue.length) return false
-  return factValue[0].toLowerCase() === jsonValue.toLowerCase()
+  if (!factValue.length) return 0
+  return factValue[0].toLowerCase() === jsonValue.toLowerCase() ? 1 : 0
 })
 
 engine.removeOperator('startsWithLetter');
@@ -185,7 +211,7 @@ engine.removeOperator('startsWithLetter');
 
 ### engine.addOperatorDecorator(String decoratorName, Function evaluateFunc(factValue, jsonValue, next))
 
-Adds a custom operator decorator to the engine.
+Adds a custom operator decorator to the engine. Decorators can modify scoring behavior.
 
 ```js
 /*
@@ -194,179 +220,154 @@ Adds a custom operator decorator to the engine.
  *    factValue - the value returned from the fact
  *    jsonValue - the "value" property stored in the condition itself
  *    next - the evaluateFunc of the decorated operator
+ *    returns: number between 0 and 1
  */
 engine.addOperatorDecorator('first', (factValue, jsonValue, next) => {
-  if (!factValue.length) return false
+  if (!factValue.length) return 0
   return next(factValue[0], jsonValue)
 })
-
-engine.addOperatorDecorator('caseInsensitive', (factValue, jsonValue, next) => {
-  return next(factValue.toLowerCase(), jsonValue.toLowerCase())
-})
-
-// and to use the decorator...
-let rule = new Rule(
-  conditions: {
-    all: [
-      {
-        fact: 'username',
-        operator: 'first:caseInsensitive:equal', // reference the decorator:operator in the rule
-        value: 'a'
-      }
-    ]
-  }
-)
 ```
-
-See the [operator decorator example](../examples/13-using-operator-decorators.js)
-
-
 
 ### engine.removeOperatorDecorator(String decoratorName)
 
-Removes a operator decorator from the engine
+Removes an operator decorator from the engine
 
 ```javascript
-engine.addOperatorDecorator('first', (factValue, jsonValue, next) => {
-  if (!factValue.length) return false
-  return next(factValue[0], jsonValue)
-})
-
-engine.addOperatorDecorator('caseInsensitive', (factValue, jsonValue, next) => {
-  return next(factValue.toLowerCase(), jsonValue.toLowerCase())
-})
-
 engine.removeOperatorDecorator('first');
 ```
 
 ### engine.setCondition(String name, Object conditions)
 
-Adds or updates a condition to the engine. Rules may include references to this condition. Conditions must start with `all`, `any`, `not`, or reference a condition.
+Stores a named condition that can be referenced by multiple rules.
 
-```javascript
-engine.setCondition('validLogin', {
-  all: [
-    {
-      operator: 'notEqual',
-      fact: 'loginToken',
-      value: null
-    },
-    {
-      operator: 'greaterThan',
-      fact: 'loginToken',
-      path: '$.expirationTime',
-      value: { fact: 'now' }
-    }
-  ]
-});
-
-engine.addRule({
-  condtions: {
-    all: [
-      {
-        condition: 'validLogin'
-      },
-      {
-        operator: 'contains',
-        fact: 'loginToken',
-        path: '$.role',
-        value: 'admin'
-      }
-    ]
-  },
-  event: {
-    type: 'AdminAccessAllowed'
-  }
+```js
+engine.setCondition('highPerformer', {
+  all: [{
+    fact: 'performanceRating',
+    operator: 'greaterThan',
+    value: 4.0,
+    weight: 3
+  }, {
+    fact: 'attendanceScore', 
+    operator: 'greaterThan',
+    value: 0.9,
+    weight: 1
+  }]
 })
 
+// Reference the condition in rules
+engine.addRule({
+  conditions: {
+    condition: 'highPerformer'
+  },
+  event: {
+    type: 'promotion-eligible'
+  }
+})
 ```
 
 ### engine.removeCondition(String name)
 
-Removes the condition that was previously added.
+Removes a named condition from the engine
 
 ```javascript
-engine.setCondition('validLogin', {
-  all: [
-    {
-      operator: 'notEqual',
-      fact: 'loginToken',
-      value: null
-    },
-    {
-      operator: 'greaterThan',
-      fact: 'loginToken',
-      path: '$.expirationTime',
-      value: { fact: 'now' }
-    }
-  ]
-});
-
-engine.removeCondition('validLogin');
+engine.removeCondition('highPerformer');
 ```
-
 
 ### engine.run([Object facts], [Object options]) -> Promise ({ events: [], failureEvents: [], almanac: Almanac, results: [], failureResults: []})
 
-Runs the rules engine.  Returns a promise which resolves when all rules have been run.
+Runs the rules engine. Results now include scores for each rule evaluation.
 
 ```js
-// run the engine
-await engine.run()
-
-// with constant facts
-await engine.run({ userId: 1 })
-
-const {
-  results,         // rule results for successful rules
-  failureResults,  // rule results for failed rules
-  events,          // array of successful rule events
-  failureEvents,   // array of failed rule events
-  almanac          // Almanac instance representing the run
-} = await engine.run({ userId: 1 })
-```
-Link to the [Almanac documentation](./almanac.md)
-
-Optionally, you may specify a specific almanac instance via the almanac property.
-
-```js
-// create a custom Almanac
-const myCustomAlmanac = new CustomAlmanac();
-
-// run the engine with the custom almanac
-await engine.run({}, { almanac: myCustomAlmanac })
+engine
+  .run(facts)
+  .then(({ events, failureEvents, results, failureResults, almanac }) => {
+    // Rule results now include scores
+    results.forEach(result => {
+      console.log(`Rule: ${result.name}`)
+      console.log(`Passed: ${result.result}`)  
+      console.log(`Score: ${result.score}`)    // New score property
+    })
+  })
 ```
 
 ### engine.stop() -> Engine
 
-Stops the rules engine from running the next priority set of Rules.  All remaining rules will be resolved as undefined,
-and no further events emitted.
-
-Be aware that since rules of the *same* priority are evaluated in parallel(not series), other rules of
-the same priority may still emit events, even though the engine has been told to stop.
+Stops the rules engine mid-run
 
 ```js
 engine.stop()
 ```
 
-There are two generic event emissions that trigger automatically:
-
-#### ```engine.on('success', Function(Object event, Almanac almanac, RuleResult ruleResult))```
-
-Fires when a rule passes. The callback will receive the event object, the current [Almanac](./almanac.md), and the [Rule Result](./rules.md#rule-results). Any promise returned by the callback will be waited on to resolve before execution continues.
+#### engine.on('success', Function(Object event, Almanac almanac, RuleResult ruleResult))
 
 ```js
+// whenever rule successfully fires, the 'success' event will trigger
 engine.on('success', function(event, almanac, ruleResult) {
-  console.log(event) // { type: 'my-event', params: { id: 1 }
+  console.log(event) // rule event
+  console.log(ruleResult.score) // rule score (0-1)
 })
 ```
 
-#### ```engine.on('failure', Function(Object event, Almanac almanac, RuleResult ruleResult))```
-
-Companion to 'success', except fires when a rule fails.  The callback will receive the event object, the current [Almanac](./almanac.md), and the [Rule Result](./rules.md#rule-results). Any promise returned by the callback will be waited on to resolve before execution continues.
+#### engine.on('failure', Function(Object event, Almanac almanac, RuleResult ruleResult))
 
 ```js
+// whenever rule fails to fire, the 'failure' event will trigger
 engine.on('failure', function(event, almanac, ruleResult) {
-  console.log(event) // { type: 'my-event', params: { id: 1 }
+  console.log(event) // rule event  
+  console.log(ruleResult.score) // rule score (0-1)
+})
+```
+
+## Scoring and Weights
+
+The rule engine supports advanced scoring and weighting for more sophisticated rule evaluation:
+
+### Operator Scoring
+
+Operators now return scores between 0 and 1 instead of boolean values:
+- `0` indicates no match
+- `1` indicates perfect match  
+- Values between 0 and 1 indicate partial matches
+
+This allows for fuzzy matching and more nuanced comparisons.
+
+### Condition Weights
+
+Conditions can be assigned weights to indicate their relative importance:
+
+```js
+{
+  conditions: {
+    all: [{
+      fact: 'criticalMetric',
+      operator: 'greaterThan',
+      value: 10,
+      weight: 3  // 3x more important than other conditions
+    }, {
+      fact: 'normalMetric', 
+      operator: 'greaterThan',
+      value: 5,
+      weight: 1  // Standard weight (default if omitted)
+    }]
+  }
+}
+```
+
+### Rule Scores
+
+Rules receive scores based on weighted condition evaluation:
+
+- **`all` conditions**: Returns weighted average of all condition scores
+- **`any` conditions**: Returns highest weighted score among conditions  
+- **`not` conditions**: Returns inverted score (1 - score)
+
+Access rule scores through the `score` property on `RuleResult`:
+
+```js
+engine.run(facts).then(({ results }) => {
+  results.forEach(result => {
+    console.log(`${result.name}: ${result.score}`)
+  })
 })
 ```

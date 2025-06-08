@@ -1,12 +1,12 @@
-![json-rules-engine](http://i.imgur.com/MAzq7l2.png)
+![@swishhq/rule-engine](http://i.imgur.com/MAzq7l2.png)
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
-[![Build Status](https://github.com/cachecontrol/json-rules-engine/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/cachecontrol/json-rules-engine/workflows/Node.js%20CI/badge.svg?branch=master)
+[![Build Status](https://github.com/swishhq/rule-engine/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/swishhq/rule-engine/workflows/Node.js%20CI/badge.svg?branch=master)
 
-[![npm version](https://badge.fury.io/js/json-rules-engine.svg)](https://badge.fury.io/js/json-rules-engine)
-[![install size](https://packagephobia.now.sh/badge?p=json-rules-engine)](https://packagephobia.now.sh/result?p=json-rules-engine)
-[![npm downloads](https://img.shields.io/npm/dm/json-rules-engine.svg)](https://www.npmjs.com/package/json-rules-engine)
+[![npm version](https://badge.fury.io/js/@swishhq/rule-engine.svg)](https://badge.fury.io/js/@swishhq/rule-engine)
+[![install size](https://packagephobia.now.sh/badge?p=@swishhq/rule-engine)](https://packagephobia.now.sh/result?p=@swishhq/rule-engine)
+[![npm downloads](https://img.shields.io/npm/dm/@swishhq/rule-engine.svg)](https://www.npmjs.com/package/@swishhq/rule-engine)
 
-A rules engine expressed in JSON
+A rules engine expressed in JSON with advanced scoring and weighting capabilities
 
 * [Synopsis](#synopsis)
 * [Features](#features)
@@ -15,6 +15,7 @@ A rules engine expressed in JSON
 * [Examples](#examples)
 * [Basic Example](#basic-example)
 * [Advanced Example](#advanced-example)
+* [Scoring and Weights](#scoring-and-weights)
 * [Debugging](#debugging)
     * [Node](#node)
     * [Browser](#browser)
@@ -23,12 +24,14 @@ A rules engine expressed in JSON
 
 ## Synopsis
 
-```json-rules-engine``` is a powerful, lightweight rules engine.  Rules are composed of simple json structures, making them human readable and easy to persist.
+```@swishhq/rule-engine``` is a powerful, lightweight rules engine. Rules are composed of simple json structures, making them human readable and easy to persist.
 
 ## Features
 
 * Rules expressed in simple, easy to read JSON
 * Full support for ```ALL``` and ```ANY``` boolean operators, including recursive nesting
+* **Advanced scoring system** with weighted conditions for nuanced rule evaluation
+* **Condition weights** for fine-grained control over rule importance
 * Fast by default, faster with configuration; priority levels and cache settings for fine tuning performance
 * Secure; no use of eval()
 * Isomorphic; runs in node and browser
@@ -37,7 +40,7 @@ A rules engine expressed in JSON
 ## Installation
 
 ```bash
-$ npm install json-rules-engine
+$ npm install @swishhq/rule-engine
 ```
 
 ## Docs
@@ -56,8 +59,7 @@ See the [Examples](./examples), which demonstrate the major features and capabil
 This example demonstrates an engine for detecting whether a basketball player has fouled out (a player who commits five personal fouls over the course of a 40-minute game, or six in a 48-minute game, fouls out).
 
 ```js
-const { Engine } = require('json-rules-engine')
-
+const { Engine } = require('@swishhq/rule-engine')
 
 /**
  * Setup a new engine
@@ -132,7 +134,7 @@ Fact information is loaded via API call during runtime, and the results are cach
 It also demonstates use of the condition _path_ feature to reference properties of objects returned by facts.
 
 ```js
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 // example client for making asynchronous requests to an api, database, etc
 import apiClient from './account-api-client'
@@ -206,7 +208,78 @@ engine
  */
 ```
 
-This is available in the [examples](./examples/03-dynamic-facts.js)
+## Scoring and Weights
+
+The rule engine now supports advanced scoring and weighting for more nuanced rule evaluation:
+
+### Scoring System
+
+* **Operators return scores (0-1)** instead of boolean values, where 1 indicates a perfect match
+* **Rules receive scores** that indicate how well they matched the conditions  
+* **Conditions can be weighted** to indicate their relative importance
+
+### Weighted Conditions
+
+```js
+// Example: Weighted scoring for employee evaluation
+engine.addRule({
+  conditions: {
+    all: [{
+      fact: 'performanceRating',
+      operator: 'greaterThanInclusive', 
+      value: 4,
+      weight: 3  // Performance is 3x more important
+    }, {
+      fact: 'attendanceScore',
+      operator: 'greaterThanInclusive',
+      value: 0.9,
+      weight: 1  // Attendance has normal weight
+    }, {
+      fact: 'teamworkRating',
+      operator: 'greaterThanInclusive',
+      value: 3.5,
+      weight: 2  // Teamwork is 2x more important
+    }]
+  },
+  event: {
+    type: 'promotion-candidate',
+    params: {
+      message: 'Employee is a promotion candidate'
+    }
+  }
+})
+```
+
+### Custom Scoring Operators
+
+You can create custom operators that return scores:
+
+```js
+// Operator that returns partial matches for string similarity
+engine.addOperator('similarTo', (factValue, jsonValue) => {
+  if (typeof factValue !== 'string' || typeof jsonValue !== 'string') return 0
+  
+  // Simple similarity: return percentage of characters that match
+  const similarity = calculateStringSimilarity(factValue, jsonValue)
+  return similarity // Returns value between 0 and 1
+})
+```
+
+### Accessing Scores
+
+Rule results now include both the boolean result and the calculated score:
+
+```js
+engine.run(facts).then(({ results }) => {
+  results.forEach(result => {
+    console.log(`Rule: ${result.name}`)
+    console.log(`Passed: ${result.result}`)
+    console.log(`Score: ${result.score}`) // New score property
+  })
+})
+```
+
+This is available in the [examples](./examples/14-scoring-and-weights.js)
 
 ## Debugging
 
@@ -215,18 +288,18 @@ To see what the engine is doing under the hood, debug output can be turned on vi
 ### Node
 
 ```bash
-DEBUG=json-rules-engine
+DEBUG=rule-engine
 ```
 
 ### Browser
 ```js
 // set debug flag in local storage & refresh page to see console output
-localStorage.debug = 'json-rules-engine'
+localStorage.debug = 'rule-engine'
 ```
 
 ## Related Projects
 
-https://github.com/vinzdeveloper/json-rule-editor - configuration ui for json-rules-engine:
+https://github.com/vinzdeveloper/json-rule-editor - configuration ui for @swishhq/rule-engine:
 
 <img width="1680" alt="rule editor 2" src="https://user-images.githubusercontent.com/61467683/82750274-dd3b3b80-9da6-11ea-96eb-434a6a1a9bc1.png">
 

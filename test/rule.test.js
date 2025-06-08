@@ -18,6 +18,7 @@ describe('Rule', () => {
       }
       condition.operator = 'all'
       condition.priority = 25
+      condition.weight = 1
       const opts = {
         priority: 50,
         conditions: condition,
@@ -40,6 +41,7 @@ describe('Rule', () => {
       }
       condition.operator = 'all'
       condition.priority = 25
+      condition.weight = 1
       const opts = {
         priority: 50,
         conditions: condition,
@@ -150,7 +152,8 @@ describe('Rule', () => {
       expect(rule.getConditions()).to.deep.equal({
         all: [],
         operator: 'all',
-        priority: 1
+        priority: 1,
+        weight: 1
       })
     })
   })
@@ -207,10 +210,10 @@ describe('Rule', () => {
 
     it('orders based on priority', async () => {
       const engine = new Engine()
-      engine.addFact('state', async () => {}, { priority: 500 })
-      engine.addFact('segment', async () => {}, { priority: 50 })
-      engine.addFact('accountType', async () => {}, { priority: 25 })
-      engine.addFact('age', async () => {}, { priority: 100 })
+      engine.addFact('state', async () => { }, { priority: 500 })
+      engine.addFact('segment', async () => { }, { priority: 50 })
+      engine.addFact('accountType', async () => { }, { priority: 25 })
+      engine.addFact('age', async () => { }, { priority: 100 })
       const rule = new Rule()
       rule.setEngine(engine)
 
@@ -277,6 +280,7 @@ describe('Rule', () => {
     }
     const conditions = {
       priority: 1,
+      weight: 1,
       all: [{
         value: 10,
         operator: 'equals',

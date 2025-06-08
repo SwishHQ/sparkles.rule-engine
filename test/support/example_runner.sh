@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# npm links the examples directory to the local copy of json-rules-engine
+# npm links the examples directory to the local copy of @swishhq/rule-engine
 # and runs all examples. This can be used to test a release candidate version
 # against the examples as an extra compatiblity test
 #
@@ -11,5 +11,5 @@ cd $THIS_DIR/../.. # project root
 npm run build
 npm link
 cd $THIS_DIR/../../examples # examples directory
-npm link json-rules-engine
+npm link @swishhq/rule-engine
 for i in *.js; do node $i; done;

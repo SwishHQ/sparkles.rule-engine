@@ -54,7 +54,7 @@ const complexRuleProps: RuleProperties = {
 };
 
 // path resolver
-const pathResolver = function(value: object, path: string): any {}
+const pathResolver = function (value: object, path: string): any { }
 expectType<PathResolver>(pathResolver)
 
 // default export test
@@ -79,7 +79,7 @@ expectType<RuleSerializable>(rule.toJSON(false));
 const operatorEvaluator: OperatorEvaluator<number, number> = (
   a: number,
   b: number
-) => a === b;
+) => a === b ? 1 : 0;
 expectType<void>(
   engine.addOperator("test", operatorEvaluator)
 );

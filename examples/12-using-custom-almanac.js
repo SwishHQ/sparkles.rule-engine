@@ -1,7 +1,7 @@
 'use strict'
 
 require('colors')
-const { Almanac, Engine } = require('json-rules-engine')
+const { Almanac, Engine } = require('@swishhq/rule-engine')
 
 /**
  * Almanac that support piping values through named functions

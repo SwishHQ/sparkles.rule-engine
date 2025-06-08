@@ -76,7 +76,7 @@ describe('Condition', () => {
       }
       const condition = new Condition(properties)
       const json = condition.toJSON()
-      expect(json).to.equal('{"priority":1,"not":{"operator":"equal","value":{"fact":"weight","params":{"unit":"lbs"},"path":".value"},"fact":"age"}}')
+      expect(json).to.equal('{"priority":1,"weight":1,"not":{"operator":"equal","value":{"fact":"weight","params":{"unit":"lbs"},"path":".value"},"fact":"age"}}')
     })
   })
 

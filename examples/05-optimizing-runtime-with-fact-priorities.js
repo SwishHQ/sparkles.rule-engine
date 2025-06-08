@@ -6,11 +6,11 @@
  *   node ./examples/05-optimizing-runtime-with-fact-priorities.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/05-optimizing-runtime-with-fact-priorities.js
+ *   DEBUG=rule-engine node ./examples/05-optimizing-runtime-with-fact-priorities.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 const accountClient = require('./support/account-api-client')
 
 async function start () {
@@ -82,7 +82,7 @@ async function start () {
   }, { priority: HIGH })
 
   // define fact(s) known at runtime
-  await engine.run()
+  await engine.run(facts)
 }
 start()
 

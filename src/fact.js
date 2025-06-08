@@ -1,7 +1,5 @@
 'use strict'
-
 import hash from 'hash-it'
-
 class Fact {
   /**
    * Returns a new fact instance
@@ -24,19 +22,25 @@ class Fact {
       this.calculationMethod = valueOrMethod
       this.type = this.constructor.DYNAMIC
     }
-
-    if (!this.id) throw new Error('factId required')
-
+    if (!this.id) { throw new Error('factId required') }
     this.priority = parseInt(options.priority || 1, 10)
     this.options = Object.assign({}, defaultOptions, options)
     this.cacheKeyMethod = this.defaultCacheKeys
     return this
   }
 
+  /**
+   * Determines if the fact is constant (static value)
+   * @return {boolean}
+   */
   isConstant () {
     return this.type === this.constructor.CONSTANT
   }
 
+  /**
+   * Determines if the fact is dynamic (computed via method)
+   * @return {boolean}
+   */
   isDynamic () {
     return this.type === this.constructor.DYNAMIC
   }
@@ -57,7 +61,7 @@ class Fact {
 
   /**
    * Return a cache key (MD5 string) based on parameters
-   * @param  {object} obj - properties to generate a hash key from
+   * @param {Object} obj - properties to generate a hash key from
    * @return {string} MD5 string based on the hash'd object
    */
   static hashFromObject (obj) {
@@ -68,9 +72,9 @@ class Fact {
    * Default properties to use when caching a fact
    * Assumes every fact is a pure function, whose computed value will only
    * change when input params are modified
-   * @param  {string} id - fact unique identifer
-   * @param  {object} params - parameters passed to fact calcution method
-   * @return {object} id + params
+   * @param {string} id - fact unique identifier
+   * @param {Object} params - parameters passed to fact calculation method
+   * @return {Object} id + params
    */
   defaultCacheKeys (id, params) {
     return { params, id }
@@ -79,7 +83,7 @@ class Fact {
   /**
    * Generates the fact's cache key(MD5 string)
    * Returns nothing if the fact's caching has been disabled
-   * @param  {object} params - parameters that would be passed to the computation method
+   * @param {Object} params - parameters that would be passed to the computation method
    * @return {string} cache key
    */
   getCacheKey (params) {
@@ -90,8 +94,6 @@ class Fact {
     }
   }
 }
-
 Fact.CONSTANT = 'CONSTANT'
 Fact.DYNAMIC = 'DYNAMIC'
-
 export default Fact

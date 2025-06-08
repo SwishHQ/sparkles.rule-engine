@@ -7,11 +7,11 @@
  *   node ./examples/03-dynamic-facts.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/03-dynamic-facts.js
+ *   DEBUG=rule-engine node ./examples/03-dynamic-facts.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 // example client for making asynchronous requests to an api, database, etc
 const apiClient = require('./support/account-api-client')

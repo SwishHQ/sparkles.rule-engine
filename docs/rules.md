@@ -138,11 +138,51 @@ let rule = new Rule({
 })
 ```
 
-See the [hello-world](../examples/01-hello-world.js) example.
+### Condition weights and scoring
+
+Conditions now support optional `weight` and `priority` properties for advanced scoring:
+
+```js
+let rule = new Rule({
+  conditions: {
+    all: [
+      {
+        fact: 'performance-score',
+        operator: 'greaterThan',
+        value: 0.8,
+        weight: 3,     // This condition is 3x more important
+        priority: 10   // Higher priority conditions are evaluated first
+      },
+      {
+        fact: 'attendance-score',
+        operator: 'greaterThan',
+        value: 0.9,
+        weight: 1      // Normal weight (default)
+      }
+    ]
+  }
+})
+```
+
+**weight** : `[Number, default 1]` Indicates the relative importance of this condition in scoring calculations. Higher weights make the condition contribute more to the final rule score.
+
+**priority** : `[Number, default 1 or fact priority]` Determines evaluation order. Higher priority conditions are evaluated first. If not specified, uses the fact's priority.
+
+See the [hello-world](../examples/01-hello-world.js) and [scoring-and-weights](../examples/14-scoring-and-weights.js) examples.
 
 ### Boolean expressions: `all`, `any`, and `not`
 
 Each rule's conditions *must* have an `all` or `any` operator containing an array of conditions at its root, a `not` operator containing a single condition, or a condition reference. The `all` operator specifies that all conditions contained within must be truthy for the rule to be considered a `success`.  The `any` operator only requires one condition to be truthy for the rule to succeed. The `not` operator will negate whatever condition it contains.
+
+#### Scoring with boolean expressions
+
+Boolean expressions now use weighted scoring instead of short-circuiting:
+
+- **`all`** - Uses weighted average scoring. All conditions are evaluated and their scores are combined using their weights. Higher-weighted conditions contribute more to the final score.
+
+- **`any`** - Uses weighted maximum scoring. All conditions are evaluated and the highest weighted score determines the result.
+
+- **`not`** - Inverts the score of its condition. A score >= 1 becomes 0, and a score < 1 becomes 1.
 
 ```js
 // all:
@@ -381,7 +421,7 @@ See [11-using-facts-in-events.js](../examples/11-using-facts-in-events.js) for a
 
 Each rule condition must begin with a boolean operator(```all```, ```any```, or ```not```) at its root.
 
-The ```operator``` compares the value returned by the ```fact``` to what is stored in the ```value``` property.  If the result is truthy, the condition passes.
+The ```operator``` compares the value returned by the ```fact``` to what is stored in the ```value``` property. Operators now return scores (0-1) instead of boolean values, where 1 indicates a perfect match and values closer to 0 indicate poorer matches. A condition is considered to "pass" when its score is >= 1.0.
 
 ### String and Numeric operators:
 
@@ -442,12 +482,13 @@ Operator Decorators can be composed by chaining them together with the colon to 
 
 ## Rule Results
 
-After a rule is evaluated, a `rule result` object is provided to the `success` and `failure` events.  This argument is similar to a regular rule, and contains additional metadata about how the rule was evaluated.  Rule results can be used to extract the results of individual conditions, computed fact values, and boolean logic results.  `name` can be used to easily identify a given rule.
+After a rule is evaluated, a `rule result` object is provided to the `success` and `failure` events.  This argument is similar to a regular rule, and contains additional metadata about how the rule was evaluated.  Rule results can be used to extract the results of individual conditions, computed fact values, boolean logic results, and scoring information.  `name` can be used to easily identify a given rule.
 
-Rule results are structured similar to rules, with two additional pieces of metadata sprinkled throughout: `result` and `factResult`
+Rule results are structured similar to rules, with additional pieces of metadata sprinkled throughout: `result`, `score`, and `factResult`
 ```js
 {
   result: false,                    // denotes whether rule computed truthy or falsey
+  score: 0.73,                      // denotes the weighted score (0-1) of the rule evaluation
   conditions: {
     all: [
       {
@@ -455,6 +496,7 @@ Rule results are structured similar to rules, with two additional pieces of meta
         operator: 'equal',
         value: 'some-value',
         result: false,             // denotes whether condition computed truthy or falsey
+        score: 0.0,                // denotes the score (0-1) of this specific condition
         factResult: 'other-value'  // denotes what 'my-fact' was computed to be
       }
     ]
@@ -469,6 +511,8 @@ Rule results are structured similar to rules, with two additional pieces of meta
   name: 'someName'
 }
 ```
+
+The `score` property indicates how well the rule matched, with 1.0 being a perfect match and 0.0 being no match. Rules with `score >= 1.0` are considered successful (`result: true`), while rules with `score < 1.0` are considered failures (`result: false`).
 
 A demonstration can be found in the [rule-results](../examples/09-rule-results.js) example.
 

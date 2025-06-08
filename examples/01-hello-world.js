@@ -6,11 +6,11 @@
  *   node ./examples/01-hello-world.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/01-hello-world.js
+ *   DEBUG=rule-engine node ./examples/01-hello-world.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

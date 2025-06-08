@@ -1,3 +1,2 @@
 'use strict'
-
-module.exports = require('./json-rules-engine')
+module.exports = require('./rule-engine')

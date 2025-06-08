@@ -12,11 +12,11 @@
  *   node ./examples/06-custom-operators.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/06-custom-operators.js
+ *   DEBUG=rule-engine node ./examples/06-custom-operators.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

@@ -9,7 +9,7 @@
 ## Step 1: Create an Engine
 
 ```js
-  let { Engine } = require('json-rules-engine');
+  let { Engine } = require('@swishhq/rule-engine');
   let engine = new Engine();
 ```
 

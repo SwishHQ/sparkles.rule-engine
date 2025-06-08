@@ -1,7 +1,7 @@
 {
-  "name": "json-rules-engine-examples",
+  "name": "@swishhq/rule-engine-examples",
   "version": "1.0.0",
-  "description": "examples for json-rule-engine",
+  "description": "examples for @swishhq/rule-engine",
   "main": "",
   "private": true,
   "scripts": {
@@ -10,6 +10,6 @@
   "author": "Cache Hamm <cache.hamm@gmail.com>",
   "license": "ISC",
   "dependencies": {
-    "json-rules-engine": "../"
+    "@swishhq/rule-engine": "../"
   }
 }

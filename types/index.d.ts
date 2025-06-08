@@ -62,7 +62,7 @@ export class Engine {
 }
 
 export interface OperatorEvaluator<A, B> {
-  (factValue: A, compareToValue: B): boolean;
+  (factValue: A, compareToValue: B): number;
 }
 
 export class Operator<A = unknown, B = unknown> {
@@ -75,7 +75,7 @@ export class Operator<A = unknown, B = unknown> {
 }
 
 export interface OperatorDecoratorEvaluator<A, B, NextA, NextB> {
-  (factValue: A, compareToValue: B, next: OperatorEvaluator<NextA, NextB>): boolean
+  (factValue: A, compareToValue: B, next: OperatorEvaluator<NextA, NextB>): number
 }
 
 export class OperatorDecorator<A = unknown, B = unknown, NextA = unknown, NextB = unknown> {
@@ -155,7 +155,7 @@ export type RuleSerializable = Pick<
 
 export type RuleResultSerializable = Pick<
   Required<RuleResult>,
-  "name" | "event" | "priority" | "result"> & {
+  "name" | "event" | "priority" | "result" | "score"> & {
     conditions: TopLevelConditionResultSerializable
   }
 
@@ -165,6 +165,7 @@ export interface RuleResult {
   event?: Event;
   priority?: number;
   result: any;
+  score: number;
   toJSON(): string;
   toJSON<T extends boolean>(
     stringify: T
@@ -192,6 +193,7 @@ export class Rule implements RuleProperties {
 
 interface BooleanConditionResultProperties {
   result?: boolean
+  score?: number
 }
 
 interface ConditionResultProperties extends BooleanConditionResultProperties {
@@ -205,6 +207,7 @@ interface ConditionProperties {
   value: { fact: string } | any;
   path?: string;
   priority?: number;
+  weight?: number;
   params?: Record<string, any>;
   name?: string;
 }
@@ -213,40 +216,53 @@ type ConditionPropertiesResult = ConditionProperties & ConditionResultProperties
 
 type NestedCondition = ConditionProperties | TopLevelCondition;
 type NestedConditionResult = ConditionPropertiesResult | TopLevelConditionResult;
+
 type AllConditions = {
   all: NestedCondition[];
   name?: string;
   priority?: number;
+  weight?: number;
 };
+
 type AllConditionsResult = AllConditions & {
   all: NestedConditionResult[]
 } & BooleanConditionResultProperties
+
 type AnyConditions = {
   any: NestedCondition[];
   name?: string;
   priority?: number;
+  weight?: number;
 };
+
 type AnyConditionsResult = AnyConditions & {
   any: NestedConditionResult[]
 } & BooleanConditionResultProperties
-type NotConditions = { not: NestedCondition; name?: string; priority?: number };
-type NotConditionsResult = NotConditions & {not: NestedConditionResult} & BooleanConditionResultProperties;
+
+type NotConditions = { not: NestedCondition; name?: string; priority?: number; weight?: number };
+type NotConditionsResult = NotConditions & { not: NestedConditionResult } & BooleanConditionResultProperties;
+
 type ConditionReference = {
   condition: string;
   name?: string;
   priority?: number;
+  weight?: number;
 };
+
 type ConditionReferenceResult = ConditionReference & BooleanConditionResultProperties
+
 export type TopLevelCondition =
   | AllConditions
   | AnyConditions
   | NotConditions
   | ConditionReference;
-export type TopLevelConditionResult = 
+
+export type TopLevelConditionResult =
   | AllConditionsResult
   | AnyConditionsResult
   | NotConditionsResult
   | ConditionReferenceResult
+
 export type TopLevelConditionResultSerializable =
   | AllConditionsResult
   | AnyConditionsResult

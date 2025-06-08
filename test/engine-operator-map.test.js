@@ -4,10 +4,10 @@ import { expect } from 'chai'
 import engineFactory, { Operator, OperatorDecorator } from '../src/index'
 
 const startsWithLetter = new Operator('startsWithLetter', (factValue, jsonValue) => {
-  return factValue[0] === jsonValue
+  return factValue[0] === jsonValue ? 1 : 0
 })
 
-const never = new OperatorDecorator('never', () => false)
+const never = new OperatorDecorator('never', () => 0)
 
 describe('Engine Operator Map', () => {
   let engine
@@ -28,7 +28,7 @@ describe('Engine Operator Map', () => {
     })
 
     it('the operator evaluates correctly', () => {
-      expect(op.evaluate('test', 't')).to.be.true()
+      expect(op.evaluate('test', 't')).to.equal(1)
     })
 
     it('after being removed the operator is null', () => {
@@ -49,7 +49,7 @@ describe('Engine Operator Map', () => {
     })
 
     it('the operator evaluates correctly', () => {
-      expect(op.evaluate('test', 't')).to.be.false()
+      expect(op.evaluate('test', 't')).to.equal(0)
     })
 
     it('removing the base operator removes the decorated version', () => {
@@ -72,7 +72,7 @@ describe('Engine Operator Map', () => {
 
       // technically not:greaterThanInclusive is the same as lessThan
       const op = engine.operators.get('everyFact:someValue:not:greaterThanInclusive')
-      expect(op.evaluate(odds, evens)).to.be.true()
+      expect(op.evaluate(odds, evens)).to.equal(1)
     })
   })
 
@@ -81,6 +81,6 @@ describe('Engine Operator Map', () => {
     const jsonValue = [1, 2, 3]
 
     const op = engine.operators.get('swap:contains')
-    expect(op.evaluate(factValue, jsonValue)).to.be.true()
+    expect(op.evaluate(factValue, jsonValue)).to.equal(1)
   })
 })

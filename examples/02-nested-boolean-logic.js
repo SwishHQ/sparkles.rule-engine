@@ -6,11 +6,11 @@
  *   node ./examples/02-nested-boolean-logic.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/02-nested-boolean-logic.js
+ *   DEBUG=rule-engine node ./examples/02-nested-boolean-logic.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

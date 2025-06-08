@@ -8,11 +8,11 @@
  *   node ./examples/04-fact-dependency.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/04-fact-dependency.js
+ *   DEBUG=rule-engine node ./examples/04-fact-dependency.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 const accountClient = require('./support/account-api-client')
 
 async function start () {

@@ -1,3 +1,25 @@
+#### 7.0.0 / 2025-06-08
+  * BREAKING CHANGES
+    * **Scoring System**: Operators now return scores (0-1) instead of boolean values, enabling fuzzy matching and partial condition evaluation
+    * **Weighted Conditions**: Added support for condition weights to indicate relative importance in rule evaluation
+    * **Rule Scores**: Rules now receive scores based on weighted condition evaluation:
+      - `all` conditions: weighted average of all condition scores
+      - `any` conditions: highest weighted score among conditions  
+      - `not` conditions: inverted score (1 - score)
+    * **Module Rename**: Package renamed from `json-rules-engine` to `@swishhq/rule-engine`
+    * **Operator Changes**: Custom operators must now return numeric scores (0-1) instead of boolean values
+    * **Default Operators**: Built-in operators now use exponential scoring for numeric comparisons
+  * NEW FEATURES
+    * Added `weight` property to conditions for fine-grained control over rule importance
+    * Added `score` property to RuleResult objects indicating how well rules matched
+    * Enhanced operator evaluation with scoring capabilities for more nuanced rule matching
+    * Support for custom scoring operators that return partial matches
+  * DOCUMENTATION
+    * Updated all documentation to reflect scoring system
+    * Added comprehensive scoring and weights example
+    * Updated TypeScript definitions for scoring functionality
+    * Enhanced README with scoring system documentation
+
 #### 6.1.0 / 2021-06-03
   * engine.removeRule() now supports removing rules by name
   * Added engine.updateRule(rule)
@@ -47,7 +69,7 @@
 #### 5.0.0 / 2019-11-29
   * BREAKING CHANGES
     * Rule conditions' `path` property is now interpreted using [json-path](https://goessner.net/articles/JsonPath/)
-      * To continue using the old syntax (provided via [selectn](https://github.com/wilmoore/selectn.js)), `npm install selectn` as a direct dependency, and `json-rules-engine` will continue to interpret legacy paths this way.
+      * To continue using the old syntax (provided via [selectn](https://github.com/wilmoore/selectn.js)), `npm install selectn` as a direct dependency, and `@swishhq/rule-engine` will continue to interpret legacy paths this way.
       * Any path starting with `$` will be assumed to use `json-path` syntax
 
 #### 4.1.0 / 2019-09-27

@@ -7,11 +7,11 @@
  *   node ./examples/10-condition-sharing.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/10-condition-sharing.js
+ *   DEBUG=rule-engine node ./examples/10-condition-sharing.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**

@@ -8,11 +8,11 @@
  *   node ./examples/12-using-operator-decorators.js
  *
  * For detailed output:
- *   DEBUG=json-rules-engine node ./examples/12-using-operator-decorators.js
+ *   DEBUG=rule-engine node ./examples/12-using-operator-decorators.js
  */
 
 require('colors')
-const { Engine } = require('json-rules-engine')
+const { Engine } = require('@swishhq/rule-engine')
 
 async function start () {
   /**
