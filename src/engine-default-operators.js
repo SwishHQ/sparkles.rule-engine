@@ -43,7 +43,7 @@ function numberValidator (factValue) {
  * Exponential scoring for "less than" comparisons
  * Score decreases exponentially as factValue exceeds the threshold
  */
-Operators.push(new Operator('lessThan', (a, b) => Math.exp(-Math.max(0, ((a - b) / 250) + Number.EPSILON)), numberValidator))
+Operators.push(new Operator('lessThan', (a, b) => Math.exp(-Math.max(0, ((a - b) / 250) - Math.log(0.9999999999999999))), numberValidator))
 /**
  * Exponential scoring for "less than or equal" comparisons
  * Score decreases exponentially as factValue exceeds the threshold
@@ -53,7 +53,7 @@ Operators.push(new Operator('lessThanInclusive', (a, b) => Math.exp(-Math.max(0,
  * Exponential scoring for "greater than" comparisons
  * Score decreases exponentially as factValue falls below the threshold
  */
-Operators.push(new Operator('greaterThan', (a, b) => Math.exp(-Math.max(0, ((b - a) / 250) + Number.EPSILON)), numberValidator))
+Operators.push(new Operator('greaterThan', (a, b) => Math.exp(-Math.max(0, ((b - a) / 250) - Math.log(0.9999999999999999))), numberValidator))
 /**
  * Exponential scoring for "greater than or equal" comparisons
  * Score decreases exponentially as factValue falls below the threshold
