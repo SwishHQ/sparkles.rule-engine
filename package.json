@@ -57,11 +57,11 @@
       "expect"
     ]
   },
-  "author": "Cache Hamm <cache.hamm@gmail.com>",
+  "author": "alias-rahil",
   "contributors": [
-    "Chris Pardy <chris.pardy@gmail.com>"
+    "alias-rahil <rahil@justswish.in>"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/swishhq/sparkles.rule-engine/issues"
   },
