@@ -20,7 +20,7 @@ A rules engine expressed in JSON with advanced scoring and weighting capabilitie
 ## Synopsis
 
 ```@swishhq/rule-engine``` is a powerful, lightweight rules engine. Rules are composed of simple json structures, making them human readable and easy to persist.
-This is an extended version of an amazing project [json-rules-engine](https://github.com/cachecontrol/json-rules-engine)
+This is an extended fork of an amazing project [json-rules-engine](https://github.com/cachecontrol/json-rules-engine)
 ## Features
 
 * Rules expressed in simple, easy to read JSON
