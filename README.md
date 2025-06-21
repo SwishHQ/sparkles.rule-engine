@@ -1,4 +1,6 @@
 
+![Group 1686556674](https://github.com/user-attachments/assets/6fd9748e-e0e0-47f7-8755-28d9db87b10f)
+
 A rules engine expressed in JSON with advanced scoring and weighting capabilities
 
 * [Synopsis](#synopsis)
