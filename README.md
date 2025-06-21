@@ -1,10 +1,3 @@
-![@swishhq/rule-engine](http://i.imgur.com/MAzq7l2.png)
-[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
-[![Build Status](https://github.com/swishhq/rule-engine/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/swishhq/rule-engine/workflows/Node.js%20CI/badge.svg?branch=master)
-
-[![npm version](https://badge.fury.io/js/@swishhq/rule-engine.svg)](https://badge.fury.io/js/@swishhq/rule-engine)
-[![install size](https://packagephobia.now.sh/badge?p=@swishhq/rule-engine)](https://packagephobia.now.sh/result?p=@swishhq/rule-engine)
-[![npm downloads](https://img.shields.io/npm/dm/@swishhq/rule-engine.svg)](https://www.npmjs.com/package/@swishhq/rule-engine)
 
 A rules engine expressed in JSON with advanced scoring and weighting capabilities
 
@@ -25,7 +18,7 @@ A rules engine expressed in JSON with advanced scoring and weighting capabilitie
 ## Synopsis
 
 ```@swishhq/rule-engine``` is a powerful, lightweight rules engine. Rules are composed of simple json structures, making them human readable and easy to persist.
-
+This is an extended version of an amazing project called [json-rules-engine](https://github.com/cachecontrol/json-rules-engine)
 ## Features
 
 * Rules expressed in simple, easy to read JSON
