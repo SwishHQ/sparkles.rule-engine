@@ -48,9 +48,10 @@ docs/
 3. **`validateCondition(conditionJson, contextFacts)`** - Validate JSON conditions ✅ **WORKING**
 4. **`validateRule(ruleOrName, facts)`** - Validate specific rule ✅ **WORKING**
 5. **`findSatisfiedRules(facts)`** - Find all satisfied rules ✅ **WORKING**
-6. **`validateObjectWithConditions(object, contextFacts)`** - Validate any object with conditions ✅ **WORKING**
-7. **`getValidationHistory(factId)`** - Get validation history ✅ **WORKING**
-8. **`clearValidationHistory()`** - Clear history ✅ **WORKING**
+6. **`findPartiallySatisfiedRules(factId, factValue, contextFacts)`** - Find partially satisfied and independent rules ✅ **WORKING**
+7. **`validateObjectWithConditions(object, contextFacts)`** - Validate any object with conditions ✅ **WORKING**
+8. **`getValidationHistory(factId)`** - Get validation history ✅ **WORKING**
+9. **`clearValidationHistory()`** - Clear history ✅ **WORKING**
 
 ### **Core Capabilities:**
 - ✅ **Fact dependency analysis** - Shows which rules use each fact

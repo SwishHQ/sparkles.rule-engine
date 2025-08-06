@@ -163,8 +163,6 @@ async function demoFindSatisfiedRules() {
   
   const facts = {
     storeId: 'xyz',
-    time: '22:30',
-    appVersion: '1.0.1'
   }
   
   const result = await validateEngine.findSatisfiedRules(facts)

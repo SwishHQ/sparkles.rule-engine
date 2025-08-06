@@ -13,8 +13,8 @@
     "lint": "standard --verbose --env mocha | snazzy || true",
     "lint:fix": "standard --fix --env mocha",
     "prepublishOnly": "npm run build",
-    "build": "babel --stage 1 -d dist/ src/",
-    "watch": "babel --watch --stage 1 -d dist/ src",
+    "build": "./node_modules/.bin/babel -d dist/ src/",
+    "watch": "./node_modules/.bin/babel --watch -d dist/ src",
     "examples": "./test/support/example_runner.sh"
   },
   "repository": {
@@ -47,8 +47,8 @@
   },
   "mocha": {
     "require": [
-      "babel-core/register",
-      "babel-polyfill"
+      "@babel/register",
+      "core-js/stable"
     ],
     "file": "./test/support/bootstrap.js",
     "checkLeaks": true,
@@ -67,13 +67,15 @@
   },
   "homepage": "https://github.com/swishhq/sparkles.rule-engine",
   "devDependencies": {
-    "babel-cli": "6.26.0",
-    "babel-core": "6.26.3",
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.23.0",
+    "@babel/plugin-transform-runtime": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/register": "^7.23.0",
+    "@babel/runtime": "^7.23.0",
     "babel-eslint": "10.1.0",
     "babel-loader": "8.2.2",
     "babel-polyfill": "6.26.0",
-    "babel-preset-es2015": "~6.24.1",
-    "babel-preset-stage-0": "~6.24.1",
     "babel-register": "6.26.0",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
@@ -90,6 +92,7 @@
   },
   "dependencies": {
     "clone": "^2.1.2",
+    "core-js": "^3.33.0",
     "eventemitter2": "^6.4.4",
     "hash-it": "^6.0.0",
     "jsonpath-plus": "^10.3.0"

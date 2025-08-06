@@ -1,534 +1,216 @@
-# 🚀 ValidateEngine: Advanced Rule Validation & Analysis
+# ValidateEngine Usage Guide
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Key Differences](#key-differences)
-- [Implementation Guide](#implementation-guide)
-- [Use Cases](#use-cases)
-- [API Reference](#api-reference)
-- [Examples](#examples)
+## Overview
 
----
+The `ValidateEngine` is a simplified extension of the base `Engine` class that provides specialized functionality for finding satisfied rules. It's designed to handle your specific use case where you need to identify all rules that are either fully satisfied, partially satisfied, or independent of the provided facts.
 
-## 🎯 Overview
+## Key Features
 
-The **ValidateEngine** is a specialized extension of the base Engine class that provides advanced validation and analysis capabilities for rule-based systems. It's designed specifically for scenarios where you need to:
+- **Fully Satisfied Rules**: Rules where all conditions are met with the provided facts
+- **Partially Satisfied Rules**: Rules that use some provided facts but need additional facts to be satisfied
+- **Independent Rules**: Rules that don't depend on any of the provided facts (these are considered satisfied)
+- **Clear Categorization**: Each rule is categorized with a `satisfactionType` indicating why it was included
 
-- ✅ **Validate individual facts** against all rules
-- ✅ **Analyze JSON conditions** before execution
-- ✅ **Track validation history** over time
-- ✅ **Understand fact dependencies** across rules
-- ✅ **Test campaign conditions** comprehensively
+## Satisfaction Types
 
----
+- **`fully_satisfied`**: All conditions in the rule are met with the provided facts
+- **`partially_satisfied`**: Rule requires additional facts to be fully satisfied (includes `missingFacts` property)
+- **`independent`**: Rule doesn't depend on any of the provided facts (includes rules with no conditions)
+- **`unsatisfied`**: Rule has all required facts but conditions don't match
 
-## 🔄 Key Differences: Engine vs ValidateEngine
+## Basic Usage
 
-| Feature | Standard Engine | ValidateEngine |
-|---------|----------------|----------------|
-| **Primary Purpose** | Rule execution and event emission | Validation and analysis |
-| **Input** | Runtime facts | Facts + JSON conditions |
-| **Output** | Events and results | Detailed validation reports |
-| **Analysis** | Basic rule evaluation | Comprehensive fact impact analysis |
-| **History** | No tracking | Full validation history |
-| **Use Case** | Production rule execution | Testing, debugging, analysis |
-
-### 🎭 When to Use Each
-
-**Use Standard Engine when:**
-- Running rules in production
-- Emitting events based on rule evaluation
-- Simple rule execution scenarios
-
-**Use ValidateEngine when:**
-- Testing rule configurations
-- Analyzing fact dependencies
-- Validating campaign conditions
-- Debugging rule behavior
-- Understanding rule impact
-
----
-
-## 🛠️ Implementation Guide
-
-### 1. Basic Setup
+### 1. Import and Setup
 
 ```javascript
-const { ValidateEngine, Rule } = require('./src/rule-engine')
+const { ValidateEngine, Rule } = require('@swishhq/rule-engine')
 
-// Create ValidateEngine instance
-const validateEngine = new ValidateEngine()
-
-// Add your rules
-validateEngine.addRule(new Rule({
-  name: 'store-campaign',
+// Create your rules
+const rule1 = new Rule({
   conditions: {
     all: [
       {
-        fact: 'storeId',
-        value: 'xyz',
-        operator: 'equal'
+        fact: "storeId",
+        operator: "equal",
+        value: "9351527b-09fd-44cf-b7a3-2f9c5af95875"
       },
       {
-        fact: 'time',
-        value: '21:40',
-        operator: 'greaterThanInclusive'
+        fact: "controlService",
+        operator: "equal",
+        value: 99
       }
     ]
   },
-  event: {
-    type: 'campaign-triggered',
-    params: { campaignId: 'store-campaign' }
-  }
-}))
-```
-
-### 2. Core Validation Methods
-
-#### 🔍 Validate Single Fact
-```javascript
-// Test how a specific fact affects all rules
-const result = await validateEngine.validateFact('storeId', 'xyz', {
-  time: '22:30',
-  appVersion: '1.0.1'
+  event: { type: 'campaign-1-triggered' },
+  name: 'Campaign 1'
 })
 
-console.log('Rules using storeId:', result.rulesUsingFact.passed.map(r => r.name))
-console.log('Rules not using storeId:', result.rulesNotUsingFact.passed.map(r => r.name))
-```
-
-#### 📊 Validate JSON Conditions
-```javascript
-// Test a JSON condition object
-const conditionJson = {
-  all: [
-    {
-      fact: 'storeId',
-      value: 'xyz',
-      operator: 'equal'
-    },
-    {
-      fact: 'time',
-      value: '21:40',
-      operator: 'greaterThanInclusive'
-    }
-  ]
-}
-
-const result = await validateEngine.validateCondition(conditionJson, {
-  appVersion: '1.0.1'
-})
-
-console.log('Extracted facts:', result.extractedFacts)
-console.log('Passed rules:', result.results.passed.map(r => r.name))
-```
-
-#### 🎯 Validate Any Object with Conditions
-```javascript
-// Example 1: Campaign
-const campaign = {
-  id: 'campaign-001',
-  name: 'Store Time Campaign',
-  type: 'campaign',
+const rule2 = new Rule({
   conditions: {
     all: [
       {
-        fact: 'storeId',
-        value: 'xyz',
-        operator: 'equal'
+        fact: "controlService",
+        operator: "equal",
+        value: 99
       },
       {
-        fact: 'time',
-        value: '21:40',
-        operator: 'greaterThanInclusive'
+        fact: "date",
+        operator: "greaterThan",
+        value: "2025-06-30"
       }
     ]
-  }
-}
-
-const campaignResult = await validateEngine.validateObjectWithConditions(campaign, {
-  appVersion: '1.0.1'
+  },
+  event: { type: 'campaign-2-triggered' },
+  name: 'Campaign 2'
 })
 
-// Example 2: Feature Flag
-const featureFlag = {
-  id: 'feature-001',
-  name: 'New UI Feature',
-  type: 'feature-flag',
-  conditions: {
-    all: [
-      {
-        fact: 'userRole',
-        value: 'admin',
-        operator: 'equal'
-      },
-      {
-        fact: 'appVersion',
-        value: '2.0.0',
-        operator: 'greaterThan'
-      }
-    ]
-  }
-}
-
-const featureResult = await validateEngine.validateObjectWithConditions(featureFlag, {
-  userRole: 'admin',
-  appVersion: '2.1.0'
-})
-
-
+// Create the engine
+const engine = new ValidateEngine([rule1, rule2])
 ```
 
----
+### 2. Find Satisfied Rules
 
-## 🎪 Use Cases
-
-### 1. **Campaign Management Systems**
 ```javascript
-// Find all campaigns applicable to a store
-async function findCampaignsForStore(storeId, contextFacts) {
-  const result = await validateEngine.validateFact('storeId', storeId, contextFacts)
-  
-  return {
-    storeSpecificCampaigns: result.rulesUsingFact.passed,
-    globalCampaigns: result.rulesNotUsingFact.passed,
-    totalCampaigns: result.summary.passedRules
-  }
+// Test with facts
+const facts = {
+  storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875'
 }
+
+const result = await engine.findSatisfiedRules(facts)
 ```
 
-### 2. **A/B Testing Validation**
-```javascript
-// Validate test conditions before deployment
-async function validateTestConditions(testConditions) {
-  const result = await validateEngine.validateCondition(testConditions)
-  
-  return {
-    isValid: result.summary.successRate > 0,
-    affectedRules: result.results.passed.length,
-    factDependencies: result.factUsage
-  }
-}
-```
+### 3. Interpret Results
 
-### 3. **Rule Impact Analysis**
-```javascript
-// Understand how a fact change affects rules
-async function analyzeFactImpact(factId, oldValue, newValue) {
-  const oldResult = await validateEngine.validateFact(factId, oldValue)
-  const newResult = await validateEngine.validateFact(factId, newValue)
-  
-  return {
-    newlyTriggeredRules: newResult.rulesUsingFact.passed.filter(rule => 
-      !oldResult.rulesUsingFact.passed.find(r => r.name === rule.name)
-    ),
-    newlyFailedRules: oldResult.rulesUsingFact.passed.filter(rule => 
-      !newResult.rulesUsingFact.passed.find(r => r.name === rule.name)
-    )
-  }
-}
-```
+The `findSatisfiedRules` method returns an object with separate arrays for each satisfaction type:
 
-### 4. **Debugging Rule Behavior**
-```javascript
-// Track validation history for debugging
-async function debugRuleBehavior(factId) {
-  const history = validateEngine.getValidationHistory(factId)
-  
-  return {
-    recentValidations: history.slice(0, 10),
-    successRate: history.filter(h => h.summary.passedRules > 0).length / history.length,
-    commonContexts: analyzeCommonContexts(history)
-  }
-}
-```
-
----
-
-## 📚 API Reference
-
-### Core Methods
-
-#### `validateFact(factId, factValue, contextFacts = {})`
-Validates a single fact against all rules.
-
-**Returns:**
 ```javascript
 {
-  factId: 'storeId',
-  factValue: 'xyz',
-  timestamp: '2025-08-04T16:07:30.493Z',
+  facts: { storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875' },
+  timestamp: "2025-08-05T12:02:23.588Z",
+  fullySatisfiedRules: [],
+  partiallySatisfiedRules: [
+    {
+      name: "Campaign 1",
+      priority: 1,
+      score: 0,
+      event: null,
+      satisfactionType: "partially_satisfied",
+      missingFacts: { controlService: 99 }
+    }
+  ],
+  independentRules: [
+    {
+      name: "Campaign 2",
+      priority: 1,
+      score: 0,
+      event: null,
+      satisfactionType: "independent"
+    }
+  ],
+  unsatisfiedRules: [],
   summary: {
-    totalRules: 3,
-    rulesUsingFact: 1,
-    rulesNotUsingFact: 2,
-    passedRules: 3,
-    failedRules: 0
-  },
-  rulesUsingFact: {
-    passed: [/* rules that use the fact and passed */],
-    failed: [/* rules that use the fact and failed */]
-  },
-  rulesNotUsingFact: {
-    passed: [/* rules that don't use the fact and passed */],
-    failed: [/* rules that don't use the fact and failed */]
+    totalRules: 2,
+    fullySatisfied: 0,
+    partiallySatisfied: 1,
+    independent: 1,
+    totalSatisfied: 2,
+    unsatisfied: 0,
+    satisfactionRate: 1.0
   }
 }
 ```
 
-#### `validateCondition(conditionJson, contextFacts = {})`
-Validates a JSON condition object against all rules.
+## Use Cases
 
-**Returns:**
+### Case 1: Partial Facts
+When you provide only some facts, rules that use those facts but need more are partially satisfied, and rules that don't use those facts are independent.
+
 ```javascript
+const facts = { storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875' }
+// Campaign 1 will be in partiallySatisfiedRules (uses storeId but needs controlService)
+// Campaign 2 will be in independentRules (doesn't use storeId)
+```
+
+### Case 2: All Facts Provided
+When you provide all required facts, rules are either fully satisfied or unsatisfied.
+
+```javascript
+const facts = {
+  storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875',
+  controlService: 99,
+  date: '2025-07-01'
+}
+// Campaign 1 will be in fullySatisfiedRules
+// Campaign 2 will be in fullySatisfiedRules
+```
+
+### Case 3: Facts That Don't Match
+When you provide facts that don't match rule conditions, rules are unsatisfied.
+
+```javascript
+const facts = { storeId: 'wrong-id', controlService: 50 }
+// Campaign 1 will be in unsatisfiedRules (storeId doesn't match)
+// Campaign 2 will be in partiallySatisfiedRules (needs date)
+```
+
+## Integration with Your API
+
+For your client-side API call:
+
+```javascript
+public async validateCampaigns(facts?: Record<string, any>, condition?: TopLevelCondition): Promise<SwishResponse<any>> {
+    try {
+        const engine = await this.getEngine();
+        const result = await engine.findSatisfiedRules(facts);
+        return {
+            success: true,
+            data: result
+        };
+    } catch (error) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+}
+```
+
+The `result` will contain:
+- `fullySatisfiedRules`: Array of rules that are fully satisfied
+- `partiallySatisfiedRules`: Array of rules that are partially satisfied (includes missing facts)
+- `independentRules`: Array of rules that don't depend on provided facts
+- `unsatisfiedRules`: Array of rules that have all required facts but conditions don't match
+- `summary`: Statistics about the results including counts for each satisfaction type
+
+## Key Benefits
+
+1. **Clear Separation**: Each satisfaction type has its own array for easy processing
+2. **Missing Facts Information**: Partially satisfied rules include information about what facts are missing
+3. **Comprehensive Results**: You get all rules categorized by their satisfaction status
+4. **Performance Optimized**: Uses the base engine's efficient evaluation with additional analysis
+
+## Example Output
+
+For your specific use case with the two campaign rules:
+
+```javascript
+// Input facts: { storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875' }
+
+// Output:
 {
-  condition: conditionJson,
-  extractedFacts: { storeId: 'xyz', time: '21:40' },
-  contextFacts: { appVersion: '1.0.1' },
-  timestamp: '2025-08-04T16:07:30.493Z',
-  summary: {
-    totalRules: 3,
-    passedRules: 2,
-    failedRules: 1,
-    successRate: 0.67
-  },
-  results: {
-    passed: [/* rules that passed */],
-    failed: [/* rules that failed */]
-  },
-  factUsage: {
-    storeId: {
-      rulesUsingFact: ['store-campaign'],
-      rulesNotUsingFact: ['global-campaign'],
-      usageCount: 1,
-      dependencyLevel: 0.33
-    }
-  }
-}
-```
-
-#### `validateObjectWithConditions(objectWithConditions, contextFacts = {})`
-Validates any object with conditions against the engine rules.
-
-
-
-#### `findSatisfiedRules(facts)`
-Finds all rules that would be satisfied by a given set of facts.
-
-#### `getValidationHistory(factId)`
-Gets validation history for a specific fact.
-
-#### `clearValidationHistory()`
-Clears all validation history.
-
----
-
-## 🎨 Examples
-
-### Example 1: Generic Object Validation
-```javascript
-// Validate any object with conditions
-const campaign = {
-  id: 'summer-sale-001',
-  name: 'Summer Sale Campaign',
-  type: 'campaign',
-  conditions: {
-    all: [
-      {
-        fact: 'storeId',
-        value: 'store-123',
-        operator: 'equal'
-      },
-      {
-        fact: 'date',
-        value: '2025-06-01',
-        operator: 'greaterThanInclusive'
-      },
-      {
-        fact: 'date',
-        value: '2025-08-31',
-        operator: 'lessThanInclusive'
-      }
-    ]
-  }
-}
-
-const result = await validateEngine.validateObjectWithConditions(campaign, {
-  currentDate: '2025-07-15',
-  userType: 'premium'
-})
-
-console.log(`Object ${result.object.name} (${result.object.type}) would trigger ${result.summary.passedRules} rules`)
-
-// Also works for feature flags, promotions, etc.
-const featureFlag = {
-  id: 'new-ui-001',
-  name: 'New UI Feature',
-  type: 'feature-flag',
-  conditions: {
-    all: [
-      {
-        fact: 'userRole',
-        value: 'admin',
-        operator: 'equal'
-      }
-    ]
-  }
-}
-
-const featureResult = await validateEngine.validateObjectWithConditions(featureFlag, {
-  userRole: 'admin'
-})
-```
-
-### Example 2: Feature Flag Analysis
-```javascript
-// Analyze how a feature flag affects rules
-const featureFlagAnalysis = await validateEngine.validateFact('featureFlag', 'new-ui', {
-  userRole: 'admin',
-  appVersion: '2.0.0'
-})
-
-console.log('Rules affected by new-ui feature flag:')
-featureFlagAnalysis.rulesUsingFact.passed.forEach(rule => {
-  console.log(`- ${rule.name}: ${rule.event.params.message}`)
-})
-```
-
-### Example 3: Complex Condition Testing
-```javascript
-// Test complex nested conditions
-const complexCondition = {
-  any: [
+  fullySatisfiedRules: [],
+  partiallySatisfiedRules: [
     {
-      all: [
-        {
-          fact: 'userType',
-          value: 'premium',
-          operator: 'equal'
-        },
-        {
-          fact: 'purchaseCount',
-          value: 5,
-          operator: 'greaterThan'
-        }
-      ]
-    },
-    {
-      all: [
-        {
-          fact: 'userType',
-          value: 'vip',
-          operator: 'equal'
-        }
-      ]
+      name: "Campaign 1",
+      satisfactionType: "partially_satisfied",
+      missingFacts: { controlService: 99 }
     }
-  ]
+  ],
+  independentRules: [
+    {
+      name: "Campaign 2", 
+      satisfactionType: "independent"
+    }
+  ],
+  unsatisfiedRules: []
 }
-
-const result = await validateEngine.validateCondition(complexCondition, {
-  userType: 'premium',
-  purchaseCount: 10
-})
-
-console.log('Complex condition validation result:', result.summary)
 ```
 
----
-
-## 🎯 How It Helps Evaluate Conditions
-
-### 1. **Comprehensive Condition Analysis**
-- ✅ Extracts all facts from JSON conditions
-- ✅ Identifies which rules depend on each fact
-- ✅ Shows how facts interact with rules
-- ✅ Provides success/failure rates
-
-### 2. **Fact Dependency Mapping**
-- ✅ Maps which rules use specific facts
-- ✅ Shows rules that don't depend on facts
-- ✅ Calculates dependency levels
-- ✅ Identifies unused facts
-
-### 3. **Validation History Tracking**
-- ✅ Tracks all validation attempts
-- ✅ Provides historical analysis
-- ✅ Enables debugging over time
-- ✅ Shows validation patterns
-
-### 4. **Impact Analysis**
-- ✅ Shows how fact changes affect rules
-- ✅ Identifies newly triggered rules
-- ✅ Shows rules that stop working
-- ✅ Provides before/after comparisons
-
----
-
-## 🚀 Getting Started
-
-1. **Install the rule engine**
-2. **Import ValidateEngine**
-3. **Add your rules**
-4. **Start validating!**
-
-```javascript
-const { ValidateEngine, Rule } = require('./src/rule-engine')
-
-const validateEngine = new ValidateEngine()
-
-// Add your rules here...
-
-// Start validating
-const result = await validateEngine.validateFact('yourFact', 'yourValue')
-console.log('Validation complete:', result.summary)
-```
-
-## 🛡️ **Error Handling & Robustness**
-
-The ValidateEngine is designed to be robust and handle edge cases gracefully:
-
-### **Undefined Facts**
-- ✅ **Graceful handling** - Uses `allowUndefinedFacts: true` for validation scenarios
-- ✅ **No crashes** - Continues evaluation even when facts are missing
-- ✅ **Clear reporting** - Shows which facts are missing in validation results
-
-### **Complex Conditions**
-- ✅ **Nested logic** - Handles `all`/`any`/`not` combinations
-- ✅ **Deep analysis** - Extracts facts from any level of nesting
-- ✅ **Condition evaluation** - Properly evaluates complex boolean logic
-
-### **State Management**
-- ✅ **Clean separation** - Uses temporary engines to avoid state pollution
-- ✅ **Memory efficient** - Proper cleanup after validation operations
-- ✅ **Thread safe** - Each validation operation is isolated
-
----
-
-## 🎉 Summary
-
-The **ValidateEngine** provides a powerful toolkit for:
-
-- 🔍 **Deep analysis** of rule behavior
-- 📊 **Comprehensive validation** of conditions
-- 🎯 **Precise fact dependency** mapping
-- 📈 **Historical tracking** of validations
-- 🛠️ **Debugging support** for complex rule systems
-- 🛡️ **Robust error handling** for production environments
-- ⚡ **Performance optimized** for large rule sets
-
-## 🔧 **Recent Improvements**
-
-### **Technical Enhancements:**
-- ✅ **Added missing methods** - `findRulesUsingFact()` and `_conditionUsesFact()`
-- ✅ **Fixed almanac handling** - Proper fact registration and evaluation
-- ✅ **Improved error resilience** - Graceful handling of undefined facts
-- ✅ **Optimized performance** - Temporary engines for clean state management
-- ✅ **Enhanced debugging** - Better error messages and validation reporting
-
-### **Production Readiness:**
-- ✅ **All demos working** - Complete test coverage of all features
-- ✅ **Error handling** - Robust handling of edge cases
-- ✅ **Memory management** - Efficient resource usage
-- ✅ **API stability** - Consistent and predictable behavior
-
-It's the perfect companion for building robust, testable rule-based systems where understanding the impact of facts and conditions is crucial for success. 
+This gives you exactly what you need: separate arrays for each satisfaction type, making it easy to process rules based on their satisfaction status and providing clear information about what additional facts are needed for partially satisfied rules. 
