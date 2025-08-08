@@ -271,96 +271,13 @@ export type TopLevelConditionResultSerializable =
 
 // ValidateEngine Types
 
-export interface ValidationSummary {
-  totalRules: number;
-  rulesUsingFact?: number;
-  rulesNotUsingFact?: number;
-  passedRules: number;
-  failedRules: number;
-  successRate?: number;
-  satisfactionRate?: number;
-  satisfied?: number;
-  unsatisfied?: number;
-  partiallySatisfied?: number;
-  independent?: number;
-  fullySatisfied?: number;
-}
-
-export interface ValidationResult {
-  passed: RuleResult[];
-  failed: RuleResult[];
-}
-
-export interface FactValidationResult {
-  factId: string;
-  factValue: any;
-  timestamp: string;
-  summary: ValidationSummary;
-  rulesUsingFact: ValidationResult;
-  rulesNotUsingFact: ValidationResult;
-  allResults: ValidationResult;
-}
-
-export interface FactsValidationResult {
-  facts: Record<string, any>;
-  timestamp: string;
-  summary: ValidationSummary;
-  results: ValidationResult;
-  factAnalysis: Record<string, {
-    rulesUsingFact: string[];
-    rulesNotUsingFact: string[];
-  }>;
-}
-
-export interface ConditionValidationResult {
-  condition: TopLevelCondition;
-  extractedFacts: Record<string, any>;
-  contextFacts: Record<string, any>;
-  timestamp: string;
-  summary: ValidationSummary;
-  results: ValidationResult;
-  factUsage: Record<string, {
-    rulesUsingFact: string[];
-    rulesNotUsingFact: string[];
-    usageCount: number;
-    dependencyLevel: number;
-  }>;
-}
-
-export interface RuleValidationResult {
-  rule: {
-    name: string;
-    priority: number;
-    conditions: TopLevelCondition;
-  };
-  facts: Record<string, any>;
-  timestamp: string;
-  result: {
-    passed: boolean;
-    score: number;
-    event: Event | null;
-  };
-  conditionAnalysis: {
-    totalConditions: number;
-    satisfiedConditions: number;
-    unsatisfiedConditions: number;
-    conditionDetails: Array<{
-      fact: string;
-      operator: string;
-      expectedValue: any;
-      actualValue: any;
-      satisfied: boolean;
-      level: number;
-    }>;
-  };
-}
-
 export interface RuleSatisfactionResult {
   name: string;
   priority: number;
   score: number;
   event: Event | null;
   satisfactionType: 'fully_satisfied' | 'partially_satisfied' | 'independent' | 'unsatisfied';
+  reason: string;
   missingFacts?: Record<string, any>;
 }
 
@@ -371,43 +288,15 @@ export interface SatisfiedRulesResult {
   partiallySatisfiedRules: RuleSatisfactionResult[];
   independentRules: RuleSatisfactionResult[];
   unsatisfiedRules: RuleSatisfactionResult[];
-  summary: ValidationSummary;
-}
-
-export interface ObjectWithConditions {
-  id?: string;
-  name?: string;
-  type?: string;
-  conditions: TopLevelCondition;
-}
-
-export interface ObjectValidationResult {
-  object: {
-    id?: string;
-    name?: string;
-    type: string;
-    conditions: TopLevelCondition;
+  summary: {
+    totalRules: number;
+    fullySatisfied: number;
+    partiallySatisfied: number;
+    independent: number;
+    totalSatisfied: number;
+    unsatisfied: number;
+    satisfactionRate: number;
   };
-  extractedFacts: Record<string, any>;
-  contextFacts: Record<string, any>;
-  timestamp: string;
-  summary: ValidationSummary;
-  results: ValidationResult;
-  factUsage: Record<string, {
-    rulesUsingFact: string[];
-    rulesNotUsingFact: string[];
-    usageCount: number;
-    dependencyLevel: number;
-  }>;
-}
-
-export interface PartiallySatisfiedRule {
-  name: string;
-  priority: number;
-  score: number;
-  event: Event | null;
-  reason: 'partially_satisfied_missing_facts' | 'independent_and_satisfied' | 'independent_but_unsatisfied' | 'fully_satisfied_with_fact' | 'unsatisfied_condition_mismatch';
-  missingFacts?: Record<string, any>;
 }
 
 export interface PartiallySatisfiedRulesResult {
@@ -415,23 +304,24 @@ export interface PartiallySatisfiedRulesResult {
   factValue: any;
   contextFacts: Record<string, any>;
   timestamp: string;
-  summary: ValidationSummary;
+  summary: SatisfiedRulesResult['summary'];
   rules: {
-    partiallySatisfied: PartiallySatisfiedRule[];
-    independent: PartiallySatisfiedRule[];
-    fullySatisfied: PartiallySatisfiedRule[];
-    unsatisfied: PartiallySatisfiedRule[];
+    partiallySatisfied: RuleSatisfactionResult[];
+    independent: RuleSatisfactionResult[];
+    fullySatisfied: RuleSatisfactionResult[];
+    unsatisfied: RuleSatisfactionResult[];
   };
 }
 
 export interface PartiallySatisfiedRulesFromContextResult {
   contextFacts: Record<string, any>;
   timestamp: string;
-  summary: ValidationSummary;
+  summary: SatisfiedRulesResult['summary'];
   rules: {
-    partiallySatisfied: PartiallySatisfiedRule[];
-    fullySatisfied: PartiallySatisfiedRule[];
-    unsatisfied: PartiallySatisfiedRule[];
+    partiallySatisfied: RuleSatisfactionResult[];
+    independent: RuleSatisfactionResult[];
+    fullySatisfied: RuleSatisfactionResult[];
+    unsatisfied: RuleSatisfactionResult[];
   };
 }
 
@@ -441,8 +331,37 @@ export class ValidateEngine extends Engine {
   /**
    * Finds all rules that would be satisfied by a given set of facts
    * This includes fully satisfied, partially satisfied, and independent rules
+   * @param facts - facts to test against
+   * @param focusedFactId - if provided, rules that do not use this fact are always independent
    */
-  findSatisfiedRules(facts: Record<string, any>): Promise<SatisfiedRulesResult>;
+  findSatisfiedRules(facts: Record<string, any>, focusedFactId?: string): Promise<SatisfiedRulesResult>;
+
+  /**
+   * Finds partially satisfied rules for a specific fact with context
+   * @param factId - the fact identifier to focus on
+   * @param factValue - the value of the fact
+   * @param contextFacts - additional context facts
+   */
+  findPartiallySatisfiedRules(factId: string, factValue: any, contextFacts?: Record<string, any>): Promise<PartiallySatisfiedRulesResult>;
+
+  /**
+   * Finds partially satisfied rules from a context object
+   * @param contextFacts - context facts to test against
+   */
+  findPartiallySatisfiedRulesFromContext(contextFacts: Record<string, any>): Promise<PartiallySatisfiedRulesFromContextResult>;
+
+  /**
+   * Registers a default value provider for an operator
+   * @param operator - the operator name
+   * @param provider - function that takes (threshold, condition) and returns a default value
+   */
+  registerDefaultValueProvider(operator: string, provider: (threshold: any, condition: object) => any): void;
+
+  /**
+   * Unregisters a default value provider for an operator
+   * @param operator - the operator name
+   */
+  unregisterDefaultValueProvider(operator: string): void;
 
   /**
    * Private methods for internal use
@@ -451,4 +370,14 @@ export class ValidateEngine extends Engine {
   private _hasConditions(condition: TopLevelCondition): boolean;
   private _getMissingFactsForRule(rule: Rule, currentFacts: Record<string, any>): Record<string, any>;
   private _extractFactsFromCondition(condition: TopLevelCondition): Record<string, any>;
+  private _getDefaultValueForCondition(condition: object): any;
+  private _getDefaultValueProvider(operator: string): ((threshold: any, condition: object) => any) | null;
+  private _createTemporaryEngine(rules: Rule[], options?: { allowUndefinedFacts?: boolean }): ValidateEngine;
+  private _getBuiltInDefaultValue(operator: string, threshold: any): any;
+  private _getValueGreaterThan(threshold: any): any;
+  private _getValueLessThan(threshold: any): any;
+  private _getValueGreaterThanOrEqual(threshold: any): any;
+  private _getValueLessThanOrEqual(threshold: any): any;
+  private _getTimeGreaterThan(threshold: string): string;
+  private _getTimeLessThan(threshold: string): string;
 }

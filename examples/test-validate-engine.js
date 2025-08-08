@@ -1,6 +1,6 @@
-const ValidateEngine = require('./dist/validate-engine.js').default
-const Rule = require('./dist/rule.js').default
-const Operator = require('./dist/operator.js').default
+const ValidateEngine = require('../dist/validate-engine.js').default
+const Rule = require('../dist/rule.js').default
+const Operator = require('../dist/operator.js').default
 
 // Helper function to convert time string to minutes for comparison
 function timeToMinutes(timeStr) {

@@ -68,120 +68,210 @@ validateEngine.addRule(new Rule({
 
 console.log('=== ValidateEngine Demo ===\n')
 
-// Demo 1: Validate a single fact
-async function demoValidateFact() {
-  console.log('1. Validating single fact: storeId = "xyz"')
-  
-  const result = await validateEngine.validateFact('storeId', 'xyz', {
-    time: '22:30',
-    appVersion: '1.0.1'
-  })
-  
-  console.log('Validation Result:')
-  console.log('- Summary:', result.summary)
-  console.log('- Rules using storeId (passed):', result.rulesUsingFact.passed.map(r => r.name))
-  console.log('- Rules not using storeId (passed):', result.rulesNotUsingFact.passed.map(r => r.name))
-  console.log('- Total passed rules:', result.allResults.passed.length)
-}
+// Demo 1: Find satisfied rules (context mode)
+async function demoFindSatisfiedRules () {
+  console.log('1. Finding satisfied rules (context mode)')
 
-// Demo 2: Validate multiple facts
-async function demoValidateFacts() {
-  console.log('\n2. Validating multiple facts')
-  
   const facts = {
     storeId: 'xyz',
-    time: '22:30',
-    appVersion: '1.0.1'
+    time: '22:30'
+    // Note: missing appVersion, so global-campaign will be partially satisfied
   }
-  
-  const result = await validateEngine.validateFacts(facts)
-  
-  console.log('Validation Result:')
-  console.log('- Summary:', result.summary)
-  console.log('- Passed rules:', result.results.passed.map(r => r.name))
-  console.log('- Failed rules:', result.results.failed.map(r => r.name))
-  console.log('- Fact analysis:', Object.keys(result.factAnalysis))
-}
 
-// Demo 3: Validate a JSON condition
-async function demoValidateCondition() {
-  console.log('\n3. Validating JSON condition')
-  
-  const conditionJson = {
-    all: [
-      {
-        fact: 'storeId',
-        value: 'xyz',
-        operator: 'equal'
-      },
-      {
-        fact: 'time',
-        value: '21:40',
-        operator: 'greaterThanInclusive'
-      },
-      {
-        fact: 'time',
-        value: '23:59',
-        operator: 'lessThanInclusive'
-      }
-    ]
-  }
-  
-  const result = await validateEngine.validateCondition(conditionJson, {
-    appVersion: '1.0.1'
-  })
-  
-  console.log('Validation Result:')
-  console.log('- Extracted facts:', result.extractedFacts)
-  console.log('- Summary:', result.summary)
-  console.log('- Passed rules:', result.results.passed.map(r => r.name))
-  console.log('- Fact usage analysis:', result.factUsage)
-}
-
-// Demo 4: Validate a specific rule
-async function demoValidateRule() {
-  console.log('\n4. Validating specific rule')
-  
-  const facts = {
-    storeId: 'xyz',
-    time: '22:30',
-    appVersion: '1.0.1'
-  }
-  
-  const result = await validateEngine.validateRule('store-specific-campaign', facts)
-  
-  console.log('Validation Result:')
-  console.log('- Rule:', result.rule.name)
-  console.log('- Passed:', result.result.passed)
-  console.log('- Score:', result.result.score)
-  console.log('- Condition analysis:', result.conditionAnalysis)
-}
-
-// Demo 5: Find satisfied rules
-async function demoFindSatisfiedRules() {
-  console.log('\n5. Finding satisfied rules')
-  
-  const facts = {
-    storeId: 'xyz',
-  }
-  
   const result = await validateEngine.findSatisfiedRules(facts)
-  
+
   console.log('Result:')
-  console.log('- Satisfied rules:', result.satisfiedRules.map(r => r.name))
+  console.log('- Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
+  console.log('- Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
+  console.log('- Independent rules:', result.independentRules.map(r => r.name))
   console.log('- Unsatisfied rules:', result.unsatisfiedRules.map(r => r.name))
   console.log('- Summary:', result.summary)
 }
 
-// Demo 6: Validate generic object with conditions
-async function demoValidateObjectWithConditions() {
-  console.log('\n6. Validating generic object with conditions')
-  
-  // Example 1: Campaign
-  const campaign = {
-    id: 'campaign-001',
-    name: 'Store Time Campaign',
-    type: 'campaign',
+// Demo 2: Find satisfied rules with focused fact
+async function demoFindSatisfiedRulesWithFocusedFact () {
+  console.log('\n2. Finding satisfied rules with focused fact: storeId')
+
+  const facts = {
+    storeId: 'xyz',
+    time: '22:30'
+    // Note: missing appVersion, so global-campaign will be partially satisfied
+  }
+
+  const result = await validateEngine.findSatisfiedRules(facts, 'storeId')
+
+  console.log('Result (focused on storeId):')
+  console.log('- Rules using storeId (fully/partially satisfied):',
+    [...result.fullySatisfiedRules, ...result.partiallySatisfiedRules].map(r => r.name))
+  console.log('- Rules independent of storeId:', result.independentRules.map(r => r.name))
+  console.log('- Summary:', result.summary)
+}
+
+// Demo 3: Find partially satisfied rules for a specific fact
+async function demoFindPartiallySatisfiedRules () {
+  console.log('\n3. Finding partially satisfied rules for storeId')
+
+  const result = await validateEngine.findPartiallySatisfiedRules('storeId', 'xyz', {
+    time: '22:30',
+    appVersion: '1.0.1'
+  })
+
+  console.log('Result:')
+  console.log('- Fact ID:', result.factId)
+  console.log('- Fact Value:', result.factValue)
+  console.log('- Context Facts:', result.contextFacts)
+  console.log('- Partially satisfied rules:', result.rules.partiallySatisfied.map(r => r.name))
+  console.log('- Independent rules:', result.rules.independent.map(r => r.name))
+  console.log('- Summary:', result.summary)
+}
+
+// Demo 4: Find partially satisfied rules from context
+async function demoFindPartiallySatisfiedRulesFromContext () {
+  console.log('\n4. Finding partially satisfied rules from context')
+
+  const contextFacts = {
+    storeId: 'xyz',
+    time: '22:30'
+  }
+
+  const result = await validateEngine.findPartiallySatisfiedRulesFromContext(contextFacts)
+
+  console.log('Result:')
+  console.log('- Context Facts:', result.contextFacts)
+  console.log('- Fully satisfied rules:', result.rules.fullySatisfied.map(r => r.name))
+  console.log('- Partially satisfied rules:', result.rules.partiallySatisfied.map(r => r.name))
+  console.log('- Independent rules:', result.rules.independent.map(r => r.name))
+  console.log('- Summary:', result.summary)
+}
+
+// Demo 5: Custom default value provider
+async function demoCustomDefaultValueProvider () {
+  console.log('\n5. Custom default value provider')
+
+  // Register a custom default value provider for the 'greaterThan' operator
+  validateEngine.registerDefaultValueProvider('greaterThan', (threshold, condition) => {
+    if (typeof threshold === 'number') {
+      return threshold + 10 // Return 10 more than threshold
+    }
+    return threshold
+  })
+
+  const facts = {
+    storeId: 'xyz'
+  }
+
+  const result = await validateEngine.findSatisfiedRules(facts)
+
+  console.log('Result with custom default value provider:')
+  console.log('- Partially satisfied rules with missing facts:')
+  result.partiallySatisfiedRules.forEach(rule => {
+    console.log(`  - ${rule.name}: missing ${JSON.stringify(rule.missingFacts)}`)
+  })
+
+  // Clean up
+  validateEngine.unregisterDefaultValueProvider('greaterThan')
+}
+
+// Demo 6: Complex condition analysis
+async function demoComplexConditionAnalysis () {
+  console.log('\n6. Complex condition analysis')
+
+  // Add a rule with complex nested conditions
+  validateEngine.addRule(new Rule({
+    name: 'complex-campaign',
+    conditions: {
+      any: [
+        {
+          all: [
+            {
+              fact: 'storeId',
+              value: 'xyz',
+              operator: 'equal'
+            },
+            {
+              fact: 'time',
+              value: '22:00',
+              operator: 'greaterThanInclusive'
+            }
+          ]
+        },
+        {
+          all: [
+            {
+              fact: 'appVersion',
+              value: '2.0.0',
+              operator: 'greaterThan'
+            },
+            {
+              fact: 'userRole',
+              value: 'admin',
+              operator: 'equal'
+            }
+          ]
+        }
+      ]
+    },
+    event: {
+      type: 'campaign-triggered',
+      params: { campaignId: 'complex-campaign' }
+    }
+  }))
+
+  const facts = {
+    storeId: 'xyz',
+    time: '22:30'
+  }
+
+  const result = await validateEngine.findSatisfiedRules(facts)
+
+  console.log('Complex condition result:')
+  console.log('- Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
+  console.log('- Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
+  console.log('- Independent rules:', result.independentRules.map(r => r.name))
+  console.log('- Summary:', result.summary)
+}
+
+// Demo 7: Rule without conditions
+async function demoRuleWithoutConditions () {
+  console.log('\n7. Rule without conditions')
+
+  // Add a rule with a condition that always evaluates to true
+  validateEngine.addRule(new Rule({
+    name: 'always-active-campaign',
+    conditions: {
+      all: [
+        {
+          fact: 'alwaysTrue',
+          operator: 'equal',
+          value: true
+        }
+      ]
+    },
+    event: {
+      type: 'campaign-triggered',
+      params: { campaignId: 'always-active-campaign' }
+    }
+  }))
+
+  const facts = {
+    storeId: 'xyz'
+  }
+
+  const result = await validateEngine.findSatisfiedRules(facts)
+
+  console.log('Result with rule that has a missing fact (alwaysTrue):')
+  console.log('- Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
+  console.log('- Independent rules:', result.independentRules.map(r => r.name))
+  console.log('- Summary:', result.summary)
+}
+
+// Demo 8: Partially satisfied rules example
+async function demoPartiallySatisfiedRules () {
+  console.log('\n8. Partially satisfied rules example')
+
+  // Add a rule that requires multiple facts with simple conditions
+  validateEngine.addRule(new Rule({
+    name: 'simple-multi-fact-campaign',
     conditions: {
       all: [
         {
@@ -190,146 +280,87 @@ async function demoValidateObjectWithConditions() {
           operator: 'equal'
         },
         {
-          fact: 'time',
-          value: '21:40',
-          operator: 'greaterThanInclusive'
-        },
-        {
-          fact: 'time',
-          value: '23:59',
-          operator: 'lessThanInclusive'
-        }
-      ]
-    }
-  }
-  
-  const campaignResult = await validateEngine.validateObjectWithConditions(campaign, {
-    appVersion: '1.0.1'
-  })
-  
-  console.log('Campaign Validation Result:')
-  console.log('- Object:', campaignResult.object.name, `(${campaignResult.object.type})`)
-  console.log('- Extracted facts:', campaignResult.extractedFacts)
-  console.log('- Summary:', campaignResult.summary)
-  
-  // Example 2: Feature Flag
-  const featureFlag = {
-    id: 'feature-001',
-    name: 'New UI Feature',
-    type: 'feature-flag',
-    conditions: {
-      all: [
-        {
           fact: 'userRole',
           value: 'admin',
           operator: 'equal'
         },
         {
-          fact: 'appVersion',
-          value: '2.0.0',
-          operator: 'greaterThan'
+          fact: 'isActive',
+          value: true,
+          operator: 'equal'
         }
       ]
+    },
+    event: {
+      type: 'campaign-triggered',
+      params: { campaignId: 'simple-multi-fact-campaign' }
     }
+  }))
+
+  // Provide facts that match the conditions but are missing isActive
+  const facts = {
+    storeId: 'xyz',
+    userRole: 'admin'
+    // Missing isActive - this should make the rule partially satisfied
   }
-  
-  const featureResult = await validateEngine.validateObjectWithConditions(featureFlag, {
-    userRole: 'admin',
-    appVersion: '2.1.0'
-  })
-  
-  console.log('\nFeature Flag Validation Result:')
-  console.log('- Object:', featureResult.object.name, `(${featureResult.object.type})`)
-  console.log('- Extracted facts:', featureResult.extractedFacts)
-  console.log('- Summary:', featureResult.summary)
-}
 
+  const result = await validateEngine.findSatisfiedRules(facts)
 
+  console.log('Result with partial facts:')
+  console.log('- Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
+  console.log('- Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
+  console.log('- Independent rules:', result.independentRules.map(r => r.name))
+  console.log('- Unsatisfied rules:', result.unsatisfiedRules.map(r => r.name))
 
-// Demo 6: Validation history
-async function demoValidationHistory() {
-      console.log('\n6. Validation history')
-  
-  // First, validate a fact
-  await validateEngine.validateFact('storeId', 'xyz', { time: '22:30' })
-  await validateEngine.validateFact('storeId', 'abc', { time: '22:30' })
-  await validateEngine.validateFact('time', '22:30', { storeId: 'xyz' })
-  
-  // Get history for storeId
-  const history = validateEngine.getValidationHistory('storeId')
-  console.log('Validation history for storeId:')
-  history.forEach((validation, index) => {
-    console.log(`- Entry ${index + 1}: ${validation.factValue} (${validation.timestamp})`)
-  })
-}
-
-// Demo 7: Complex condition validation
-async function demoComplexCondition() {
-      console.log('\n7. Complex condition validation')
-  
-  const complexCondition = {
-    any: [
-      {
-        all: [
-          {
-            fact: 'storeId',
-            value: 'xyz',
-            operator: 'equal'
-          },
-          {
-            fact: 'time',
-            value: '22:00',
-            operator: 'greaterThanInclusive'
-          }
-        ]
-      },
-      {
-        all: [
-          {
-            fact: 'appVersion',
-            value: '2.0.0',
-            operator: 'greaterThan'
-          }
-        ]
-      }
-    ]
+  if (result.partiallySatisfiedRules.length > 0) {
+    console.log('- Missing facts for partially satisfied rules:')
+    result.partiallySatisfiedRules.forEach(rule => {
+      console.log(`  - ${rule.name}: missing ${JSON.stringify(rule.missingFacts)}`)
+    })
   }
-  
-  const result = await validateEngine.validateCondition(complexCondition, {
-    time: '22:30'
-  })
-  
-  console.log('Complex condition validation:')
-  console.log('- Extracted facts:', result.extractedFacts)
+
   console.log('- Summary:', result.summary)
-  console.log('- Passed rules:', result.results.passed.map(r => r.name))
+
+  // Now provide all facts to show fully satisfied
+  console.log('\nNow providing all required facts:')
+  const completeFacts = {
+    storeId: 'xyz',
+    userRole: 'admin',
+    isActive: true
+  }
+
+  const completeResult = await validateEngine.findSatisfiedRules(completeFacts)
+
+  console.log('- Fully satisfied rules:', completeResult.fullySatisfiedRules.map(r => r.name))
+  console.log('- Partially satisfied rules:', completeResult.partiallySatisfiedRules.map(r => r.name))
+  console.log('- Summary:', completeResult.summary)
 }
 
 // Run all demos
-async function runAllDemos() {
+async function runAllDemos () {
   try {
-    await demoValidateFact()
-    await demoValidateFacts()
-    await demoValidateCondition()
-    await demoValidateRule()
     await demoFindSatisfiedRules()
-    await demoValidateObjectWithConditions()
-    await demoValidationHistory()
-    await demoComplexCondition()
-    
+    await demoFindSatisfiedRulesWithFocusedFact()
+    await demoFindPartiallySatisfiedRules()
+    await demoFindPartiallySatisfiedRulesFromContext()
+    await demoCustomDefaultValueProvider()
+    await demoComplexConditionAnalysis()
+    await demoRuleWithoutConditions()
+    await demoPartiallySatisfiedRules()
+
     console.log('\n=== All demos completed successfully! ===')
     console.log('\nKey Features Demonstrated:')
-    console.log('✓ validateFact() - Validate single fact against all rules')
-    console.log('✓ validateFacts() - Validate multiple facts')
-    console.log('✓ validateCondition() - Validate JSON condition object')
-    console.log('✓ validateRule() - Validate specific rule')
-    console.log('✓ findSatisfiedRules() - Find all satisfied rules')
-    console.log('✓ validateObjectWithConditions() - Validate any object with conditions')
-    console.log('✓ getValidationHistory() - Track validation history')
+    console.log('✓ findSatisfiedRules() - Find all satisfied rules (context mode)')
+    console.log('✓ findSatisfiedRules(facts, focusedFactId) - Focused fact mode')
+    console.log('✓ findPartiallySatisfiedRules() - Single fact with context')
+    console.log('✓ findPartiallySatisfiedRulesFromContext() - Context-only analysis')
+    console.log('✓ registerDefaultValueProvider() - Custom default values')
     console.log('✓ Complex conditions - Handle nested all/any/not logic')
+    console.log('✓ Rules without conditions - Always satisfied')
+    console.log('✓ Partially satisfied rules - Missing facts example')
   } catch (error) {
     console.error('Error running demos:', error.message)
   }
 }
 
-runAllDemos() 
+runAllDemos()

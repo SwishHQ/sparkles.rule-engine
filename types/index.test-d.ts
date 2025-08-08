@@ -155,15 +155,9 @@ expectType<void>(almanac.addRuntimeFact("test-fact", "some-value"));
 // ValidateEngine tests
 import {
   ValidateEngine,
-  ValidationSummary,
-  ValidationResult,
-  FactValidationResult,
-  FactsValidationResult,
-  ConditionValidationResult,
-  RuleValidationResult,
   SatisfiedRulesResult,
-  ObjectWithConditions,
-  ObjectValidationResult,
+  PartiallySatisfiedRulesResult,
+  PartiallySatisfiedRulesFromContextResult,
   TopLevelCondition
 } from "../";
 
@@ -175,6 +169,9 @@ expectType<ValidateEngine>(validateEngine);
 const satisfiedRulesPromise = validateEngine.findSatisfiedRules({ "fact1": "value1" });
 expectType<Promise<SatisfiedRulesResult>>(satisfiedRulesPromise);
 
+const satisfiedRulesWithFocusedFactPromise = validateEngine.findSatisfiedRules({ "fact1": "value1" }, "fact1");
+expectType<Promise<SatisfiedRulesResult>>(satisfiedRulesWithFocusedFactPromise);
+
 const satisfiedRules = await satisfiedRulesPromise;
 expectType<Record<string, any>>(satisfiedRules.facts);
 expectType<string>(satisfiedRules.timestamp);
@@ -182,7 +179,27 @@ expectType<RuleSatisfactionResult[]>(satisfiedRules.fullySatisfiedRules);
 expectType<RuleSatisfactionResult[]>(satisfiedRules.partiallySatisfiedRules);
 expectType<RuleSatisfactionResult[]>(satisfiedRules.independentRules);
 expectType<RuleSatisfactionResult[]>(satisfiedRules.unsatisfiedRules);
-expectType<ValidationSummary>(satisfiedRules.summary);
+expectType<{
+  totalRules: number;
+  fullySatisfied: number;
+  partiallySatisfied: number;
+  independent: number;
+  totalSatisfied: number;
+  unsatisfied: number;
+  satisfactionRate: number;
+}>(satisfiedRules.summary);
+
+// Test findPartiallySatisfiedRules
+const partiallySatisfiedPromise = validateEngine.findPartiallySatisfiedRules("fact1", "value1", { "fact2": "value2" });
+expectType<Promise<PartiallySatisfiedRulesResult>>(partiallySatisfiedPromise);
+
+// Test findPartiallySatisfiedRulesFromContext
+const partiallySatisfiedFromContextPromise = validateEngine.findPartiallySatisfiedRulesFromContext({ "fact1": "value1" });
+expectType<Promise<PartiallySatisfiedRulesFromContextResult>>(partiallySatisfiedFromContextPromise);
+
+// Test default value provider methods
+expectType<void>(validateEngine.registerDefaultValueProvider("greaterThan", (threshold, condition) => threshold + 1));
+expectType<void>(validateEngine.unregisterDefaultValueProvider("greaterThan"));
 
 // Test RuleSatisfactionResult interface
 const ruleSatisfactionResult: RuleSatisfactionResult = {
@@ -190,7 +207,8 @@ const ruleSatisfactionResult: RuleSatisfactionResult = {
   priority: 1,
   score: 1.0,
   event: { type: "test-event" },
-  satisfactionType: "fully_satisfied"
+  satisfactionType: "fully_satisfied",
+  reason: "fully_satisfied_with_fact"
 };
 expectType<RuleSatisfactionResult>(ruleSatisfactionResult);
 
@@ -200,6 +218,7 @@ const partiallySatisfiedRule: RuleSatisfactionResult = {
   score: 0,
   event: null,
   satisfactionType: "partially_satisfied",
+  reason: "partially_satisfied_missing_facts",
   missingFacts: { fact1: "value1" }
 };
 expectType<RuleSatisfactionResult>(partiallySatisfiedRule);
@@ -210,7 +229,8 @@ const independentRule: RuleSatisfactionResult = {
   priority: 1,
   score: 1,
   event: { type: "test-event" },
-  satisfactionType: "independent"
+  satisfactionType: "independent",
+  reason: "independent_and_satisfied"
 };
 expectType<RuleSatisfactionResult>(independentRule);
 
@@ -220,27 +240,7 @@ const unsatisfiedRule: RuleSatisfactionResult = {
   priority: 1,
   score: 0,
   event: null,
-  satisfactionType: "unsatisfied"
+  satisfactionType: "unsatisfied",
+  reason: "unsatisfied_condition_mismatch"
 };
 expectType<RuleSatisfactionResult>(unsatisfiedRule);
-
-// Test ValidationSummary interface
-const summary: ValidationSummary = {
-  totalRules: 10,
-  rulesUsingFact: 5,
-  rulesNotUsingFact: 5,
-  passedRules: 8,
-  failedRules: 2,
-  successRate: 0.8,
-  satisfactionRate: 0.8,
-  satisfied: 8,
-  unsatisfied: 2
-};
-expectType<ValidationSummary>(summary);
-
-// Test ValidationResult interface
-const validationResult: ValidationResult = {
-  passed: [],
-  failed: []
-};
-expectType<ValidationResult>(validationResult);
