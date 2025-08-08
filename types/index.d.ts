@@ -268,3 +268,116 @@ export type TopLevelConditionResultSerializable =
   | AnyConditionsResult
   | NotConditionsResult
   | ConditionReference
+
+// ValidateEngine Types
+
+export interface RuleSatisfactionResult {
+  name: string;
+  priority: number;
+  score: number;
+  event: Event | null;
+  satisfactionType: 'fully_satisfied' | 'partially_satisfied' | 'independent' | 'unsatisfied';
+  reason: string;
+  missingFacts?: Record<string, any>;
+}
+
+export interface SatisfiedRulesResult {
+  facts: Record<string, any>;
+  timestamp: string;
+  fullySatisfiedRules: RuleSatisfactionResult[];
+  partiallySatisfiedRules: RuleSatisfactionResult[];
+  independentRules: RuleSatisfactionResult[];
+  unsatisfiedRules: RuleSatisfactionResult[];
+  summary: {
+    totalRules: number;
+    fullySatisfied: number;
+    partiallySatisfied: number;
+    independent: number;
+    totalSatisfied: number;
+    unsatisfied: number;
+    satisfactionRate: number;
+  };
+}
+
+export interface PartiallySatisfiedRulesResult {
+  factId: string;
+  factValue: any;
+  contextFacts: Record<string, any>;
+  timestamp: string;
+  summary: SatisfiedRulesResult['summary'];
+  rules: {
+    partiallySatisfied: RuleSatisfactionResult[];
+    independent: RuleSatisfactionResult[];
+    fullySatisfied: RuleSatisfactionResult[];
+    unsatisfied: RuleSatisfactionResult[];
+  };
+}
+
+export interface PartiallySatisfiedRulesFromContextResult {
+  contextFacts: Record<string, any>;
+  timestamp: string;
+  summary: SatisfiedRulesResult['summary'];
+  rules: {
+    partiallySatisfied: RuleSatisfactionResult[];
+    independent: RuleSatisfactionResult[];
+    fullySatisfied: RuleSatisfactionResult[];
+    unsatisfied: RuleSatisfactionResult[];
+  };
+}
+
+export class ValidateEngine extends Engine {
+  constructor(rules?: Array<RuleProperties>, options?: EngineOptions);
+
+  /**
+   * Finds all rules that would be satisfied by a given set of facts
+   * This includes fully satisfied, partially satisfied, and independent rules
+   * @param facts - facts to test against
+   * @param focusedFactId - if provided, rules that do not use this fact are always independent
+   */
+  findSatisfiedRules(facts: Record<string, any>, focusedFactId?: string): Promise<SatisfiedRulesResult>;
+
+  /**
+   * Finds partially satisfied rules for a specific fact with context
+   * @param factId - the fact identifier to focus on
+   * @param factValue - the value of the fact
+   * @param contextFacts - additional context facts
+   */
+  findPartiallySatisfiedRules(factId: string, factValue: any, contextFacts?: Record<string, any>): Promise<PartiallySatisfiedRulesResult>;
+
+  /**
+   * Finds partially satisfied rules from a context object
+   * @param contextFacts - context facts to test against
+   */
+  findPartiallySatisfiedRulesFromContext(contextFacts: Record<string, any>): Promise<PartiallySatisfiedRulesFromContextResult>;
+
+  /**
+   * Registers a default value provider for an operator
+   * @param operator - the operator name
+   * @param provider - function that takes (threshold, condition) and returns a default value
+   */
+  registerDefaultValueProvider(operator: string, provider: (threshold: any, condition: object) => any): void;
+
+  /**
+   * Unregisters a default value provider for an operator
+   * @param operator - the operator name
+   */
+  unregisterDefaultValueProvider(operator: string): void;
+
+  /**
+   * Private methods for internal use
+   */
+  private _conditionUsesFact(condition: TopLevelCondition, factId: string): boolean;
+  private _hasConditions(condition: TopLevelCondition): boolean;
+  private _getMissingFactsForRule(rule: Rule, currentFacts: Record<string, any>): Record<string, any>;
+  private _extractFactsFromCondition(condition: TopLevelCondition): Record<string, any>;
+  private _getDefaultValueForCondition(condition: object): any;
+  private _getDefaultValueProvider(operator: string): ((threshold: any, condition: object) => any) | null;
+  private _createTemporaryEngine(rules: Rule[], options?: { allowUndefinedFacts?: boolean }): ValidateEngine;
+  private _getBuiltInDefaultValue(operator: string, threshold: any): any;
+  private _getValueGreaterThan(threshold: any): any;
+  private _getValueLessThan(threshold: any): any;
+  private _getValueGreaterThanOrEqual(threshold: any): any;
+  private _getValueLessThanOrEqual(threshold: any): any;
+  private _getTimeGreaterThan(threshold: string): string;
+  private _getTimeLessThan(threshold: string): string;
+}

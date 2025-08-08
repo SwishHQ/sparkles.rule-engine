@@ -18,7 +18,8 @@ import rulesEngine, {
   TopLevelConditionResult,
   AnyConditionsResult,
   AllConditionsResult,
-  NotConditionsResult
+  NotConditionsResult,
+  RuleSatisfactionResult
 } from "../";
 
 // setup basic fixture data
@@ -150,3 +151,96 @@ const almanac: Almanac = (await engine.run()).almanac;
 
 expectType<Promise<string>>(almanac.factValue<string>("test-fact"));
 expectType<void>(almanac.addRuntimeFact("test-fact", "some-value"));
+
+// ValidateEngine tests
+import {
+  ValidateEngine,
+  SatisfiedRulesResult,
+  PartiallySatisfiedRulesResult,
+  PartiallySatisfiedRulesFromContextResult,
+  TopLevelCondition
+} from "../";
+
+// Create ValidateEngine instance
+const validateEngine = new ValidateEngine([ruleProps]);
+expectType<ValidateEngine>(validateEngine);
+
+// Test findSatisfiedRules
+const satisfiedRulesPromise = validateEngine.findSatisfiedRules({ "fact1": "value1" });
+expectType<Promise<SatisfiedRulesResult>>(satisfiedRulesPromise);
+
+const satisfiedRulesWithFocusedFactPromise = validateEngine.findSatisfiedRules({ "fact1": "value1" }, "fact1");
+expectType<Promise<SatisfiedRulesResult>>(satisfiedRulesWithFocusedFactPromise);
+
+const satisfiedRules = await satisfiedRulesPromise;
+expectType<Record<string, any>>(satisfiedRules.facts);
+expectType<string>(satisfiedRules.timestamp);
+expectType<RuleSatisfactionResult[]>(satisfiedRules.fullySatisfiedRules);
+expectType<RuleSatisfactionResult[]>(satisfiedRules.partiallySatisfiedRules);
+expectType<RuleSatisfactionResult[]>(satisfiedRules.independentRules);
+expectType<RuleSatisfactionResult[]>(satisfiedRules.unsatisfiedRules);
+expectType<{
+  totalRules: number;
+  fullySatisfied: number;
+  partiallySatisfied: number;
+  independent: number;
+  totalSatisfied: number;
+  unsatisfied: number;
+  satisfactionRate: number;
+}>(satisfiedRules.summary);
+
+// Test findPartiallySatisfiedRules
+const partiallySatisfiedPromise = validateEngine.findPartiallySatisfiedRules("fact1", "value1", { "fact2": "value2" });
+expectType<Promise<PartiallySatisfiedRulesResult>>(partiallySatisfiedPromise);
+
+// Test findPartiallySatisfiedRulesFromContext
+const partiallySatisfiedFromContextPromise = validateEngine.findPartiallySatisfiedRulesFromContext({ "fact1": "value1" });
+expectType<Promise<PartiallySatisfiedRulesFromContextResult>>(partiallySatisfiedFromContextPromise);
+
+// Test default value provider methods
+expectType<void>(validateEngine.registerDefaultValueProvider("greaterThan", (threshold, condition) => threshold + 1));
+expectType<void>(validateEngine.unregisterDefaultValueProvider("greaterThan"));
+
+// Test RuleSatisfactionResult interface
+const ruleSatisfactionResult: RuleSatisfactionResult = {
+  name: "test-rule",
+  priority: 1,
+  score: 1.0,
+  event: { type: "test-event" },
+  satisfactionType: "fully_satisfied",
+  reason: "fully_satisfied_with_fact"
+};
+expectType<RuleSatisfactionResult>(ruleSatisfactionResult);
+
+const partiallySatisfiedRule: RuleSatisfactionResult = {
+  name: "test-rule",
+  priority: 1,
+  score: 0,
+  event: null,
+  satisfactionType: "partially_satisfied",
+  reason: "partially_satisfied_missing_facts",
+  missingFacts: { fact1: "value1" }
+};
+expectType<RuleSatisfactionResult>(partiallySatisfiedRule);
+
+// Test independent rule
+const independentRule: RuleSatisfactionResult = {
+  name: "test-rule",
+  priority: 1,
+  score: 1,
+  event: { type: "test-event" },
+  satisfactionType: "independent",
+  reason: "independent_and_satisfied"
+};
+expectType<RuleSatisfactionResult>(independentRule);
+
+// Test unsatisfied rule
+const unsatisfiedRule: RuleSatisfactionResult = {
+  name: "test-rule",
+  priority: 1,
+  score: 0,
+  event: null,
+  satisfactionType: "unsatisfied",
+  reason: "unsatisfied_condition_mismatch"
+};
+expectType<RuleSatisfactionResult>(unsatisfiedRule);
