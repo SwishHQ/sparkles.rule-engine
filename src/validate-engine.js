@@ -1,7 +1,6 @@
 'use strict'
 import Engine from './engine'
 import Rule from './rule'
-import Almanac from './almanac'
 import debug from './debug'
 
 /**
@@ -14,9 +13,8 @@ export default class ValidateEngine extends Engine {
    * @param {Rule[]} rules - array of rules to initialize with
    * @param {Object} options - engine configuration options
    */
-  constructor(rules = [], options = {}) {
+  constructor (rules = [], options = {}) {
     super(rules, options)
-    this._defaultValueProviders = new Map()
   }
 
   /**
@@ -26,27 +24,27 @@ export default class ValidateEngine extends Engine {
    * @return {boolean} whether the condition uses this fact
    * @private
    */
-  _conditionUsesFact(condition, factId) {
+  _conditionUsesFact (condition, factId) {
     if (!condition) return false
-    
+
     // Check if this condition directly uses the fact
     if (condition.fact === factId) {
       return true
     }
-    
+
     // Check nested conditions
     if (condition.all && Array.isArray(condition.all)) {
       return condition.all.some(c => this._conditionUsesFact(c, factId))
     }
-    
+
     if (condition.any && Array.isArray(condition.any)) {
       return condition.any.some(c => this._conditionUsesFact(c, factId))
     }
-    
+
     if (condition.not) {
       return this._conditionUsesFact(condition.not, factId)
     }
-    
+
     return false
   }
 
@@ -57,17 +55,17 @@ export default class ValidateEngine extends Engine {
    * @param {string} [focusedFactId] - if provided, rules that do not use this fact are always independent
    * @return {Promise<Object>} analysis of which rules would be satisfied
    */
-  async findSatisfiedRules(facts, focusedFactId) {
+  async findSatisfiedRules (facts, focusedFactId) {
     debug('validateEngine::findSatisfiedRules', { factIds: Object.keys(facts) })
-    
+
     const providedFactIds = Object.keys(facts)
-    
+
     // Categorize rules into different satisfaction types
     const fullySatisfiedRules = []
     const partiallySatisfiedRules = []
     const independentRules = []
     const unsatisfiedRules = []
-    
+
     for (const rule of this.rules) {
       // If focusedFactId is provided, use it for independence logic
       const usesFocusedFact = focusedFactId
@@ -75,10 +73,10 @@ export default class ValidateEngine extends Engine {
         : providedFactIds.some(factId => this._conditionUsesFact(rule.getConditions(), factId))
       // For context-based: does the rule use ANY provided fact?
       const usesAnyProvidedFact = providedFactIds.some(factId => this._conditionUsesFact(rule.getConditions(), factId))
-      
+
       // Check if rule has any conditions at all
       const hasConditions = this._hasConditions(rule.getConditions())
-      
+
       if (!hasConditions) {
         // Rule has no conditions - it's independent and always satisfied
         independentRules.push({
@@ -113,83 +111,38 @@ export default class ValidateEngine extends Engine {
         // Rule has conditions - check if it uses provided facts and if it has missing facts
         const missingFacts = this._getMissingFactsForRule(rule, facts)
         const hasMissingFacts = Object.keys(missingFacts).length > 0
-        const usesProvidedFacts = providedFactIds.some(factId => 
+        const usesProvidedFacts = providedFactIds.some(factId =>
           this._conditionUsesFact(rule.getConditions(), factId)
         )
-        
+
         if (hasMissingFacts && usesProvidedFacts) {
           // Rule has missing facts but also uses provided facts
-          // First, evaluate with available facts to see if it would fail anyway
-          const tempEngine = this._createTemporaryEngine([rule], {
-            allowUndefinedFacts: true
-          })
-          
-          try {
-            const result = await tempEngine.run(facts)
-            if (result.results.length > 0) {
-              // Rule is fully satisfied even with missing facts
-              fullySatisfiedRules.push({
-                name: rule.name,
-                priority: rule.priority,
-                score: result.results[0].score,
-                event: result.results[0].event,
-                satisfactionType: 'fully_satisfied',
-                reason: 'fully_satisfied_with_fact'
-              })
-            } else {
-              // Rule failed evaluation with available facts
-              // Now check if it would succeed with the missing facts
-              const completeFacts = { ...facts, ...missingFacts }
-              const completeEngine = this._createTemporaryEngine([rule], {
-                allowUndefinedFacts: false
-              })
-              
-              try {
-                const completeResult = await completeEngine.run(completeFacts)
-                if (completeResult.results.length > 0) {
-                  // Rule would be satisfied if missing facts were provided
-                  partiallySatisfiedRules.push({
-                    name: rule.name,
-                    priority: rule.priority,
-                    score: 0,
-                    event: rule.event,
-                    satisfactionType: 'partially_satisfied',
-                    reason: 'partially_satisfied_missing_facts',
-                    missingFacts: missingFacts
-                  })
-                } else {
-                  // Rule would fail even with missing facts - it's unsatisfied
-                  unsatisfiedRules.push({
-                    name: rule.name,
-                    priority: rule.priority,
-                    score: 0,
-                    event: rule.event,
-                    satisfactionType: 'unsatisfied',
-                    reason: 'unsatisfied_condition_mismatch'
-                  })
-                }
-              } catch (completeError) {
-                // If complete evaluation fails, treat as unsatisfied
-                unsatisfiedRules.push({
-                  name: rule.name,
-                  priority: rule.priority,
-                  score: 0,
-                  event: rule.event,
-                  satisfactionType: 'unsatisfied',
-                  reason: 'unsatisfied_condition_mismatch'
-                })
-              }
-            }
-          } catch (error) {
-            // If evaluation fails due to missing facts, check if it would succeed with them
-            const completeFacts = { ...facts, ...missingFacts }
-            const completeEngine = this._createTemporaryEngine([rule], {
+          // Create a modified rule that excludes conditions using missing facts
+          const modifiedRule = this._createRuleWithoutMissingFacts(rule, Object.keys(missingFacts))
+
+          if (modifiedRule) {
+            // Evaluate the modified rule with available facts
+            const tempEngine = this._createTemporaryEngine([modifiedRule], {
               allowUndefinedFacts: false
             })
-            
+
             try {
-              const completeResult = await completeEngine.run(completeFacts)
-              if (completeResult.results.length > 0) {
+              const result = await tempEngine.run(facts)
+              if (result.results.length > 0) {
+                // Rule passes without missing facts, but since we had missing facts,
+                // it should be classified as partially satisfied
+                partiallySatisfiedRules.push({
+                  name: rule.name,
+                  priority: rule.priority,
+                  score: result.results[0].score,
+                  event: result.results[0].event,
+                  satisfactionType: 'partially_satisfied',
+                  reason: 'partially_satisfied_missing_facts',
+                  missingFacts: missingFacts
+                })
+              } else {
+                // Rule failed evaluation even without missing facts
+                // This means the rule would be partially satisfied if proper values were provided
                 partiallySatisfiedRules.push({
                   name: rule.name,
                   priority: rule.priority,
@@ -199,27 +152,30 @@ export default class ValidateEngine extends Engine {
                   reason: 'partially_satisfied_missing_facts',
                   missingFacts: missingFacts
                 })
-              } else {
-                unsatisfiedRules.push({
-                  name: rule.name,
-                  priority: rule.priority,
-                  score: 0,
-                  event: rule.event,
-                  satisfactionType: 'unsatisfied',
-                  reason: 'unsatisfied_condition_mismatch'
-                })
               }
-            } catch (completeError) {
-              // If complete evaluation fails, treat as unsatisfied
-              unsatisfiedRules.push({
+            } catch (error) {
+              // If evaluation fails, treat as partially satisfied since we have missing facts
+              partiallySatisfiedRules.push({
                 name: rule.name,
                 priority: rule.priority,
                 score: 0,
                 event: rule.event,
-                satisfactionType: 'unsatisfied',
-                reason: 'unsatisfied_condition_mismatch'
+                satisfactionType: 'partially_satisfied',
+                reason: 'partially_satisfied_missing_facts',
+                missingFacts: missingFacts
               })
             }
+          } else {
+            // If no conditions remain after removing missing facts, treat as partially satisfied
+            partiallySatisfiedRules.push({
+              name: rule.name,
+              priority: rule.priority,
+              score: 0,
+              event: rule.event,
+              satisfactionType: 'partially_satisfied',
+              reason: 'partially_satisfied_missing_facts',
+              missingFacts: missingFacts
+            })
           }
         } else if (hasMissingFacts && !usesProvidedFacts) {
           // Rule has missing facts but doesn't use any provided facts
@@ -247,7 +203,7 @@ export default class ValidateEngine extends Engine {
           const tempEngine = this._createTemporaryEngine([rule], {
             allowUndefinedFacts: false
           })
-          
+
           try {
             const result = await tempEngine.run(facts)
             if (result.results.length > 0) {
@@ -285,7 +241,7 @@ export default class ValidateEngine extends Engine {
         }
       }
     }
-    
+
     return {
       facts,
       timestamp: new Date().toISOString(),
@@ -312,10 +268,10 @@ export default class ValidateEngine extends Engine {
    * @param {Object} contextFacts - additional context facts
    * @return {Promise<Object>} analysis of which rules would be satisfied
    */
-  async findPartiallySatisfiedRules(factId, factValue, contextFacts = {}) {
+  async findPartiallySatisfiedRules (factId, factValue, contextFacts = {}) {
     const facts = { [factId]: factValue, ...contextFacts }
     const result = await this.findSatisfiedRules(facts, factId)
-    
+
     return {
       factId,
       factValue,
@@ -336,15 +292,15 @@ export default class ValidateEngine extends Engine {
    * @param {Object} contextFacts - context facts to test against
    * @return {Promise<Object>} analysis of which rules would be satisfied
    */
-  async findPartiallySatisfiedRulesFromContext(contextFacts) {
+  async findPartiallySatisfiedRulesFromContext (contextFacts) {
     const result = await this.findSatisfiedRules(contextFacts) // no focusedFactId
-    
+
     // Update reasons for context-based analysis
     const updatedFullySatisfied = result.fullySatisfiedRules.map(rule => ({
       ...rule,
       reason: rule.reason === 'fully_satisfied_with_fact' ? 'fully_satisfied' : rule.reason
     }))
-    
+
     return {
       contextFacts,
       timestamp: result.timestamp,
@@ -362,23 +318,23 @@ export default class ValidateEngine extends Engine {
    * Checks if a rule has any conditions
    * @private
    */
-  _hasConditions(condition) {
+  _hasConditions (condition) {
     if (!condition) return false
-    
+
     if (condition.fact) return true
-    
+
     if (condition.all && Array.isArray(condition.all)) {
       return condition.all.length > 0 && condition.all.some(c => this._hasConditions(c))
     }
-    
+
     if (condition.any && Array.isArray(condition.any)) {
       return condition.any.length > 0 && condition.any.some(c => this._hasConditions(c))
     }
-    
+
     if (condition.not) {
       return this._hasConditions(condition.not)
     }
-    
+
     return false
   }
 
@@ -386,16 +342,16 @@ export default class ValidateEngine extends Engine {
    * Gets the missing facts required for a rule to be satisfied
    * @private
    */
-  _getMissingFactsForRule(rule, currentFacts) {
+  _getMissingFactsForRule (rule, currentFacts) {
     const requiredFacts = this._extractFactsFromCondition(rule.getConditions())
     const missingFacts = {}
-    
-    for (const [factId, defaultValue] of Object.entries(requiredFacts)) {
+
+    for (const factId of Object.keys(requiredFacts)) {
       if (!(factId in currentFacts)) {
-        missingFacts[factId] = defaultValue
+        missingFacts[factId] = null // We don't need default values anymore
       }
     }
-    
+
     return missingFacts
   }
 
@@ -403,277 +359,128 @@ export default class ValidateEngine extends Engine {
    * Extracts facts from a condition JSON object
    * @private
    */
-  _extractFactsFromCondition(condition) {
+  _extractFactsFromCondition (condition) {
     const facts = {}
-    
+
     const extractFromCondition = (cond) => {
       if (cond.fact && cond.value !== undefined) {
-        // For missing facts, provide reasonable defaults based on the operator
-        const defaultValue = this._getDefaultValueForCondition(cond)
-        facts[cond.fact] = defaultValue
+        // Just collect the fact ID, we don't need default values
+        facts[cond.fact] = true
       }
-      
+
       if (cond.all) {
         cond.all.forEach(extractFromCondition)
       }
-      
+
       if (cond.any) {
         cond.any.forEach(extractFromCondition)
       }
-      
+
       if (cond.not) {
         extractFromCondition(cond.not)
       }
     }
-    
+
     extractFromCondition(condition)
     return facts
   }
 
   /**
-   * Gets a default value for a condition that would satisfy it
-   * This method can be extended by subclasses or through operator decorators
-   * @param {Object} condition - the condition object
-   * @return {any} default value that would satisfy the condition
-   * @private
-   */
-  _getDefaultValueForCondition(condition) {
-    const { operator, value } = condition
-    
-    // Try to get default value from registered default value providers first
-    const defaultValueProvider = this._getDefaultValueProvider(operator)
-    if (defaultValueProvider) {
-      try {
-        return defaultValueProvider(value, condition)
-      } catch (error) {
-        // Fall back to built-in logic
-      }
-    }
-    
-    // Built-in default value logic for common operators
-    return this._getBuiltInDefaultValue(operator, value)
-  }
-
-  /**
-   * Gets the default value provider for an operator
-   * @param {string} operator - the operator name
-   * @return {Function|null} the default value provider function or null
-   * @private
-   */
-  _getDefaultValueProvider(operator) {
-    // Check if we have a default value provider registered for this operator
-    if (this._defaultValueProviders && this._defaultValueProviders.has(operator)) {
-      return this._defaultValueProviders.get(operator)
-    }
-    return null
-  }
-
-  /**
-   * Registers a default value provider for an operator
-   * @param {string} operator - the operator name
-   * @param {Function} provider - function that takes (threshold, condition) and returns a default value
-   * @public
-   */
-  registerDefaultValueProvider(operator, provider) {
-    if (!this._defaultValueProviders) {
-      this._defaultValueProviders = new Map()
-    }
-    this._defaultValueProviders.set(operator, provider)
-  }
-
-  /**
-   * Unregisters a default value provider for an operator
-   * @param {string} operator - the operator name
-   * @public
-   */
-  unregisterDefaultValueProvider(operator) {
-    if (this._defaultValueProviders) {
-      this._defaultValueProviders.delete(operator)
-    }
-  }
-
-  /**
-   * Creates a temporary engine with all operators and default value providers copied
+   * Creates a temporary engine with all operators copied
    * @param {Rule[]} rules - rules to add to the temporary engine
    * @param {Object} options - engine options
    * @return {ValidateEngine} temporary engine with all operators copied
    * @private
    */
-  _createTemporaryEngine(rules, options = {}) {
+  _createTemporaryEngine (rules, options = {}) {
     const tempEngine = new ValidateEngine(rules, {
       allowUndefinedFacts: options.allowUndefinedFacts || false,
       pathResolver: this.pathResolver
     })
-    
+
     // Copy ALL operators from the original engine
     const originalOperators = this.operators.operators
     for (const [name, operator] of originalOperators.entries()) {
       tempEngine.addOperator(name, operator.cb)
     }
-    
-    // Copy ALL default value providers
-    if (this._defaultValueProviders) {
-      for (const [name, provider] of this._defaultValueProviders.entries()) {
-        tempEngine.registerDefaultValueProvider(name, provider)
-      }
-    }
-    
+
     return tempEngine
   }
 
   /**
-   * Gets built-in default values for common operators
-   * @param {string} operator - the operator name
-   * @param {any} threshold - the threshold value
-   * @return {any} default value that would satisfy the condition
+   * Creates a new Rule object with conditions that exclude conditions using missing facts.
+   * This is a helper method to modify a rule's conditions for evaluation.
+   * @param {Rule} originalRule - The original rule to modify.
+   * @param {string[]} missingFactIds - An array of fact IDs that are missing.
+   * @return {Rule|null} A new Rule object with conditions excluding the missing facts,
+   *                      or null if the rule becomes empty after removing conditions.
    * @private
    */
-  _getBuiltInDefaultValue(operator, threshold) {
-    // For comparison operators, provide a value that would satisfy the condition
-    switch (operator) {
-      case 'equal':
-        return threshold
-      
-      case 'notEqual':
-        // Return a different value of the same type
-        return typeof threshold === 'string' ? threshold + '_different' : threshold + 1
-      
-      case 'greaterThan':
-      case 'isTimeGreaterThan':
-        return this._getValueGreaterThan(threshold)
-      
-      case 'lessThan':
-      case 'isTimeLessThan':
-        return this._getValueLessThan(threshold)
-      
-      case 'greaterThanInclusive':
-        return this._getValueGreaterThanOrEqual(threshold)
-      
-      case 'lessThanInclusive':
-        return this._getValueLessThanOrEqual(threshold)
-      
-      case 'in':
-        // For array membership, return the first element if it exists
-        return Array.isArray(threshold) && threshold.length > 0 ? threshold[0] : threshold
-      
-      case 'contains':
-        // For array containment, return a value that would be in the array
-        return Array.isArray(threshold) && threshold.length > 0 ? threshold[0] : threshold
-      
-      case 'includes':
-        // For array inclusion, return the first element if it exists
-        return Array.isArray(threshold) && threshold.length > 0 ? threshold[0] : threshold
-      
-      default:
-        // For unknown operators, return the threshold as-is
-        return threshold
+  _createRuleWithoutMissingFacts (originalRule, missingFactIds) {
+    // Get the original conditions
+    const originalConditions = originalRule.getConditions()
+
+    // Create a deep copy of the conditions and filter out those using missing facts
+    const filteredConditions = this._filterConditionsWithoutMissingFacts(originalConditions, missingFactIds)
+
+    if (!filteredConditions || (filteredConditions.all && filteredConditions.all.length === 0) ||
+        (filteredConditions.any && filteredConditions.any.length === 0)) {
+      return null // Rule becomes empty after removing all conditions
     }
+
+    // Create a new rule with the filtered conditions
+    return new Rule({
+      name: originalRule.name,
+      priority: originalRule.priority,
+      event: originalRule.event,
+      conditions: filteredConditions
+    })
   }
 
   /**
-   * Gets a value that's greater than the threshold
-   * @param {any} threshold - the threshold value
-   * @return {any} value greater than threshold
+   * Recursively filters conditions to remove those that use missing facts
+   * @param {Object} conditions - The conditions object to filter
+   * @param {string[]} missingFactIds - Array of missing fact IDs
+   * @return {Object|null} Filtered conditions or null if all conditions are removed
    * @private
    */
-  _getValueGreaterThan(threshold) {
-    if (typeof threshold === 'number') {
-      return threshold + 1
-    } else if (typeof threshold === 'string') {
-      // Handle time strings
-      if (threshold.includes(':')) {
-        return this._getTimeGreaterThan(threshold)
-      }
-      // For other strings, append a character
-      return threshold + '1'
+  _filterConditionsWithoutMissingFacts (conditions, missingFactIds) {
+    if (!conditions) return null
+
+    // If this is a simple condition (has fact property)
+    if (conditions.fact) {
+      const usesMissingFact = missingFactIds.includes(conditions.fact)
+      return usesMissingFact ? null : conditions
     }
-    return threshold
-  }
 
-  /**
-   * Gets a value that's less than the threshold
-   * @param {any} threshold - the threshold value
-   * @return {any} value less than threshold
-   * @private
-   */
-  _getValueLessThan(threshold) {
-    if (typeof threshold === 'number') {
-      return threshold - 1
-    } else if (typeof threshold === 'string') {
-      // Handle time strings
-      if (threshold.includes(':')) {
-        return this._getTimeLessThan(threshold)
-      }
-      // For other strings, remove last character if possible
-      return threshold.length > 1 ? threshold.slice(0, -1) : threshold
+    // Handle 'all' conditions
+    if (conditions.all && Array.isArray(conditions.all)) {
+      const filteredAll = conditions.all
+        .map(condition => this._filterConditionsWithoutMissingFacts(condition, missingFactIds))
+        .filter(condition => condition !== null)
+
+      if (filteredAll.length === 0) return null
+      // Always return an 'all' structure, even with one condition
+      return { all: filteredAll }
     }
-    return threshold
-  }
 
-  /**
-   * Gets a value that's greater than or equal to the threshold
-   * @param {any} threshold - the threshold value
-   * @return {any} value greater than or equal to threshold
-   * @private
-   */
-  _getValueGreaterThanOrEqual(threshold) {
-    if (typeof threshold === 'number') {
-      return threshold
-    } else if (typeof threshold === 'string') {
-      // Handle time strings
-      if (threshold.includes(':')) {
-        return threshold
-      }
-      // For other strings, return as-is
-      return threshold
+    // Handle 'any' conditions
+    if (conditions.any && Array.isArray(conditions.any)) {
+      const filteredAny = conditions.any
+        .map(condition => this._filterConditionsWithoutMissingFacts(condition, missingFactIds))
+        .filter(condition => condition !== null)
+
+      if (filteredAny.length === 0) return null
+      // Always return an 'any' structure, even with one condition
+      return { any: filteredAny }
     }
-    return threshold
-  }
 
-  /**
-   * Gets a value that's less than or equal to the threshold
-   * @param {any} threshold - the threshold value
-   * @return {any} value less than or equal to threshold
-   * @private
-   */
-  _getValueLessThanOrEqual(threshold) {
-    if (typeof threshold === 'number') {
-      return threshold
-    } else if (typeof threshold === 'string') {
-      // Handle time strings
-      if (threshold.includes(':')) {
-        return threshold
-      }
-      // For other strings, return as-is
-      return threshold
+    // Handle 'not' conditions
+    if (conditions.not) {
+      const filteredNot = this._filterConditionsWithoutMissingFacts(conditions.not, missingFactIds)
+      return filteredNot ? { not: filteredNot } : null
     }
-    return threshold
-  }
 
-  /**
-   * Gets a time value that's greater than the given threshold
-   * @private
-   */
-  _getTimeGreaterThan(threshold) {
-    const [hours, minutes] = threshold.split(':').map(Number)
-    const totalMinutes = hours * 60 + minutes
-    const newTotalMinutes = totalMinutes + 30 // Add 30 minutes
-    const newHours = Math.floor(newTotalMinutes / 60)
-    const newMinutes = newTotalMinutes % 60
-    return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
+    return conditions
   }
-
-  /**
-   * Gets a time value that's less than the given threshold
-   * @private
-   */
-  _getTimeLessThan(threshold) {
-    const [hours, minutes] = threshold.split(':').map(Number)
-    const totalMinutes = hours * 60 + minutes
-    const newTotalMinutes = Math.max(0, totalMinutes - 30) // Subtract 30 minutes, but not below 0
-    const newHours = Math.floor(newTotalMinutes / 60)
-    const newMinutes = newTotalMinutes % 60
-    return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
-  }
-
-} 
+}
