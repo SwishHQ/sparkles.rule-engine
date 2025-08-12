@@ -1,17 +1,15 @@
-const ValidateEngine = require('../dist/validate-engine.js').default
-const Rule = require('../dist/rule.js').default
-const Operator = require('../dist/operator.js').default
+const { ValidateEngine } = require('../dist/rule-engine')
 
 // Helper function to convert time string to minutes for comparison
-function timeToMinutes(timeStr) {
+function timeToMinutes (timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number)
   return hours * 60 + minutes
 }
 
 // Test case 1: Only storeId fact provided
-async function testCase1() {
+async function testCase1 () {
   console.log('\n=== Test Case 1: Only storeId fact provided ===')
-  
+
   const rules = [
     {
       name: 'White-1 & Tav-1 & time constraint',
@@ -93,39 +91,39 @@ async function testCase1() {
   ]
 
   const engine = new ValidateEngine(rules)
-  
+
   // Add custom time operators
   engine.addOperator('isTimeGreaterThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes > thresholdMinutes ? 1 : 0
   })
-  
+
   engine.addOperator('isTimeLessThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes < thresholdMinutes ? 1 : 0
   })
-  
+
   const facts = {
     storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875'
   }
 
   console.log('Facts:', facts)
   const result = await engine.findSatisfiedRules(facts)
-  
+
   console.log('Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
   console.log('Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
   console.log('Independent rules:', result.independentRules.map(r => r.name))
   console.log('Unsatisfied rules:', result.unsatisfiedRules.map(r => r.name))
-  
+
   return result
 }
 
 // Test case 2: storeId and time facts provided
-async function testCase2() {
+async function testCase2 () {
   console.log('\n=== Test Case 2: storeId and time facts provided ===')
-  
+
   const rules = [
     {
       name: 'White-1 & Tav-1 & time constraint',
@@ -207,20 +205,20 @@ async function testCase2() {
   ]
 
   const engine = new ValidateEngine(rules)
-  
+
   // Add custom time operators
   engine.addOperator('isTimeGreaterThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes > thresholdMinutes ? 1 : 0
   })
-  
+
   engine.addOperator('isTimeLessThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes < thresholdMinutes ? 1 : 0
   })
-  
+
   const facts = {
     storeId: '9351527b-09fd-44cf-b7a3-2f9c5af95875',
     time: '17:38'
@@ -228,19 +226,19 @@ async function testCase2() {
 
   console.log('Facts:', facts)
   const result = await engine.findSatisfiedRules(facts)
-  
+
   console.log('Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
   console.log('Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
   console.log('Independent rules:', result.independentRules.map(r => r.name))
   console.log('Unsatisfied rules:', result.unsatisfiedRules.map(r => r.name))
-  
+
   return result
 }
 
 // Test case 3: Different storeId fact provided
-async function testCase3() {
+async function testCase3 () {
   console.log('\n=== Test Case 3: Different storeId fact provided ===')
-  
+
   const rules = [
     {
       name: 'White-1 & Tav-1 & time constraint',
@@ -322,37 +320,37 @@ async function testCase3() {
   ]
 
   const engine = new ValidateEngine(rules)
-  
+
   // Add custom time operators
   engine.addOperator('isTimeGreaterThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes > thresholdMinutes ? 1 : 0
   })
-  
+
   engine.addOperator('isTimeLessThan', (factValue, threshold) => {
     const factMinutes = timeToMinutes(factValue)
     const thresholdMinutes = timeToMinutes(threshold)
     return factMinutes < thresholdMinutes ? 1 : 0
   })
-  
+
   const facts = {
     storeId: '85af4105-5cb8-4e6f-b2a7-23d74ffc8e67'
   }
 
   console.log('Facts:', facts)
   const result = await engine.findSatisfiedRules(facts)
-  
+
   console.log('Fully satisfied rules:', result.fullySatisfiedRules.map(r => r.name))
   console.log('Partially satisfied rules:', result.partiallySatisfiedRules.map(r => r.name))
   console.log('Independent rules:', result.independentRules.map(r => r.name))
   console.log('Unsatisfied rules:', result.unsatisfiedRules.map(r => r.name))
-  
+
   return result
 }
 
 // Run all test cases
-async function runTests() {
+async function runTests () {
   try {
     await testCase1()
     await testCase2()
@@ -362,4 +360,4 @@ async function runTests() {
   }
 }
 
-runTests() 
+runTests()
